@@ -1,0 +1,11 @@
+{
+  "properties": [
+    {
+      "name": "custom.output.ovito",
+      "type": "java.lang.String",
+      "description": "The path for the Ovito file."
+    }
+  ]
+}
+
+
