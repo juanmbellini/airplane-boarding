@@ -2,6 +2,7 @@ package ar.edu.itba.ss.exit_room.models;
 
 import ar.edu.itba.ss.g7.engine.simulation.State;
 import ar.edu.itba.ss.g7.engine.simulation.StateHolder;
+import com.sun.istack.internal.Nullable;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.springframework.util.Assert;
 
@@ -29,7 +30,8 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     /**
      * Tells wherever or not the particle is overlapping another particle in this moment.
      */
-    private boolean isOverlapping;
+    @Nullable
+    private Boolean isOverlapping;
 
     // ================================================================================================================
     // Constructor
@@ -82,6 +84,8 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     // ================================================================================================================
 
     public void update(final double dt) {
+        Assert.state(isOverlapping != null, "We must check overlapping states before updating");
+
         if (isOverlapping) {
             //TODO: set radius to min radius
             //TODO: set speed to vd max
@@ -91,6 +95,9 @@ public class Particle implements StateHolder<Particle.ParticleState> {
         }
 
         updatePosition(dt);
+
+        //We clear the overlapping state
+        isOverlapping = null;
     }
 
     private void updatePosition(final double dt) {
@@ -100,7 +107,6 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     // ================================================================================================================
     // Others
     // ================================================================================================================
-
 
     /**
      * Checks if another particle can be created with the given {@code position} and {@code radius} arguments.
