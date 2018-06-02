@@ -120,18 +120,14 @@ public class Silo implements System<Silo.SiloState> {
      * @param hole               The silo's hole size.
      * @param minRadius          The min. radius of a {@link Particle}.
      * @param maxRadius          The max. radius of a {@link Particle}.
-     * @param mass               The mass of a {@link Particle}.
-     * @param elasticConstant    The elastic constant.
      * @param duration           The amount of time the simulation will last.
      */
-    public Silo(final double length, final double width, final double hole,
-        final double minRadius, final double maxRadius, final double mass,
-        final double elasticConstant, final double duration) {
-
-        validateShape(length, width, hole);
+    public Silo(final double length, final double width, final double hole, final double dt,
+        final double minRadius, final double maxRadius, final double duration) {
 
         this.minRadius = minRadius;
         this.maxRadius = maxRadius;
+        this.timeStep = dt;
 
         // Shape stuff
         this.leftBottomWall = Wall.getLeftBottomWall(width, hole);
@@ -145,7 +141,6 @@ public class Silo implements System<Silo.SiloState> {
         // TODO: load Particles
 
         // Integration
-        this.timeStep = 0.001 * Math.sqrt(mass / elasticConstant);
         this.duration = duration;
         this.actualTime = 0;
 
