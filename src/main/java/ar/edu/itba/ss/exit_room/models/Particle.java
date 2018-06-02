@@ -2,7 +2,6 @@ package ar.edu.itba.ss.exit_room.models;
 
 import ar.edu.itba.ss.g7.engine.simulation.State;
 import ar.edu.itba.ss.g7.engine.simulation.StateHolder;
-import com.sun.istack.internal.Nullable;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.springframework.util.Assert;
 
@@ -30,7 +29,6 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     /**
      * Tells wherever or not the particle is overlapping another particle in this moment.
      */
-    @Nullable
     private Boolean isOverlapping;
 
     // ================================================================================================================
