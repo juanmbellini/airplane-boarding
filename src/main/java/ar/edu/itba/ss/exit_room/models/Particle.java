@@ -109,6 +109,19 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     // ================================================================================================================
 
     /**
+     * Updates particle overlaping state
+     *
+     * @param particle Other.
+     * @return {@code true} if the new particle would overlap {@code this} particle, or {@code false} otherwise.
+     */
+    public boolean doOverlap(final Particle particle) {
+        if (Boolean.TRUE.equals(isOverlapping)) return true;
+
+        isOverlapping = doOverlap(particle.getPosition(), particle.getRadius());
+        return isOverlapping;
+    }
+
+    /**
      * Checks if another particle can be created with the given {@code position} and {@code radius} arguments.
      *
      * @param position The position where the new particle will be created.
@@ -116,8 +129,7 @@ public class Particle implements StateHolder<Particle.ParticleState> {
      * @return {@code true} if the new particle would overlap {@code this} particle, or {@code false} otherwise.
      */
     public boolean doOverlap(final Vector2D position, final double radius) {
-        isOverlapping = this.radius + radius - this.position.distance(position) < 0;
-        return isOverlapping;
+        return this.radius + radius - this.position.distance(position) < 0;
     }
 
     /**
