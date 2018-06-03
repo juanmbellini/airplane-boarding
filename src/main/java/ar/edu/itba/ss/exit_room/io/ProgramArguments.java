@@ -16,6 +16,11 @@ public class ProgramArguments {
     private final double duration;
 
     /**
+     * The time step.
+     */
+    private final double timeStep;
+
+    /**
      * The particles' stuff.
      */
     private final ParticleProperties particleProperties;
@@ -34,16 +39,19 @@ public class ProgramArguments {
      * Constructor.
      *
      * @param duration           The simulation's duration.
+     * @param timeStep           The time step.
      * @param particleProperties The particles' stuff.
      * @param roomProperties     The room's stuff.
      * @param outputStuff        The output stuff.
      */
     @Autowired
     public ProgramArguments(@Value("${custom.simulation.duration}") double duration,
+                            @Value("${custom.simulation.time-step}") double timeStep,
                             final ParticleProperties particleProperties,
                             final RoomProperties roomProperties,
                             final OutputStuff outputStuff) {
         this.duration = duration;
+        this.timeStep = timeStep;
         this.particleProperties = particleProperties;
         this.roomProperties = roomProperties;
         this.outputStuff = outputStuff;
@@ -54,6 +62,13 @@ public class ProgramArguments {
      */
     public double getDuration() {
         return duration;
+    }
+
+    /**
+     * @return The time step.
+     */
+    public double getTimeStep() {
+        return timeStep;
     }
 
     /**
@@ -155,22 +170,22 @@ public class ProgramArguments {
         /**
          * The room's hole size.
          */
-        private final double roomHoleSize;
+        private final double roomDoorSize;
 
         /**
          * Constructor.
          *
          * @param roomLength   The room's length.
          * @param roomWidth    The room's width.
-         * @param roomHoleSize The room's hole size.
+         * @param roomDoorSize The room's hole size.
          */
         @Autowired
         public RoomProperties(@Value("${custom.system.room.L}") final double roomLength,
                               @Value("${custom.system.room.W}") final double roomWidth,
-                              @Value("${custom.system.room.D}") final double roomHoleSize) {
+                              @Value("${custom.system.room.D}") final double roomDoorSize) {
             this.roomLength = roomLength;
             this.roomWidth = roomWidth;
-            this.roomHoleSize = roomHoleSize;
+            this.roomDoorSize = roomDoorSize;
         }
 
         /**
@@ -190,8 +205,8 @@ public class ProgramArguments {
         /**
          * @return The room's hole size.
          */
-        public double getRoomHoleSize() {
-            return roomHoleSize;
+        public double getRoomDoorSize() {
+            return roomDoorSize;
         }
     }
 

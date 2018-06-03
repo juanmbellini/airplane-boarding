@@ -90,7 +90,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
                 .append(" ")
                 .append(0)
                 .append(" ")
-                .append(0.005)  // Radius
+                .append(0.05)  // Radius
                 .append(" ")
                 .append(1) // Red
                 .append(" ")
@@ -106,7 +106,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
                 .append(" ")
                 .append(0)
                 .append(" ")
-                .append(0.005) // Radius
+                .append(0.05) // Radius
                 .append(" ")
                 .append(1) // Red
                 .append(" ")

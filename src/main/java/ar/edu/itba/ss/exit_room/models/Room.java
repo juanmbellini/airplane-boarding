@@ -82,16 +82,17 @@ public class Room implements System<Room.RoomState> {
     /**
      * Constructor.
      *
-     * @param length    The room's width.
-     * @param width     The room's length.
-     * @param door      The room's door size.
-     * @param minRadius The min. radius of a {@link Particle}.
-     * @param duration  The amount of time the simulation will last.
+     * @param length               The room's width.
+     * @param width                The room's length.
+     * @param door                 The room's door size.
+     * @param maxAmountOfParticles The max. amount of particles.
+     * @param minRadius            The min. radius of a {@link Particle}.
+     * @param timeStep             The time step.
+     * @param duration             The amount of time the simulation will last.
      */
     public Room(final double length, final double width, final double door,
                 final int maxAmountOfParticles,
-                final double timeStep,
-                final double minRadius, final double duration) {
+                final double minRadius, final double timeStep, final double duration) {
         this.componentsProvider = new ComponentsProvider(length, width, door, minRadius, maxAmountOfParticles);
         this.walls = componentsProvider.buildWalls();
         this.particles = componentsProvider.createParticles();
