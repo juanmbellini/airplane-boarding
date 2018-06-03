@@ -1,6 +1,26 @@
 {
   "properties": [
     {
+      "name": "custom.system.room.L",
+      "type": "java.lang.Double",
+      "description": "The room's length."
+    },
+    {
+      "name": "custom.system.room.W",
+      "type": "java.lang.Double",
+      "description": "The room's width."
+    },
+    {
+      "name": "custom.system.room.D",
+      "type": "java.lang.Double",
+      "description": "The room's hole size."
+    },
+    {
+      "name": "custom.simulation.duration",
+      "type": "java.lang.Double",
+      "description": "The Simulation's duration, in seconds."
+    },
+    {
       "name": "custom.output.ovito",
       "type": "java.lang.String",
       "description": "The path for the Ovito file."

@@ -5,6 +5,13 @@ spring:
         active: dev
     main:
         banner-mode: "off"
+custom:
+    system:
+        room:
+            L: 20
+            W: 20
+            D: 1.2
+
 
 
 ---

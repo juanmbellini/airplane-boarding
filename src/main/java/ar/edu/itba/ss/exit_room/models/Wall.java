@@ -19,10 +19,6 @@ public final class Wall implements StateHolder<Wall.WallState> {
      */
     private final Vector2D finalPoint;
 
-    /**
-     * The wall's layout.
-     */
-    private final WallLayout wallLayout;
 
     /**
      * Constructor.
@@ -30,10 +26,9 @@ public final class Wall implements StateHolder<Wall.WallState> {
      * @param initialPoint The wall's initial position.
      * @param finalPoint   The wall's final position.
      */
-    private Wall(final Vector2D initialPoint, final Vector2D finalPoint, final WallLayout wallLayout) {
+    public Wall(final Vector2D initialPoint, final Vector2D finalPoint) {
         this.initialPoint = initialPoint;
         this.finalPoint = finalPoint;
-        this.wallLayout = wallLayout;
     }
 
     /**
@@ -66,101 +61,6 @@ public final class Wall implements StateHolder<Wall.WallState> {
         return new WallState(this);
     }
 
-    //TODO: don't know if we are going to need this
-    /**
-     * Creates a top wall for a {@link Silo}.
-     *
-     * @param length The length of the {@link Silo} (must be positive).
-     * @param width  The width of the {@link Silo} (must be positive).
-     * @return The created wall.
-     * @throws IllegalArgumentException In case the length or width are not positive.
-     */
-    public static Wall getTopWall(final double length, final double width) throws IllegalArgumentException {
-        final Vector2D initialPosition = new Vector2D(0, length);
-        final Vector2D finalPosition = new Vector2D(width, length);
-        return new Wall(initialPosition, finalPosition, WallLayout.TOP);
-    }
-
-    /**
-     * Creates a left bottom wall for a {@link Silo}.
-     *
-     * @param width The width of the {@link Silo} (must be positive).
-     * @param hole  The hole length.
-     * @return The created wall.
-     * @throws IllegalArgumentException In case the length or width are not positive.
-     */
-    public static Wall getLeftBottomWall(final double width, final double hole) throws IllegalArgumentException {
-        final Vector2D initialPosition = new Vector2D(0, 0);
-        final Vector2D finalPosition = new Vector2D((width - hole) / 2, 0);
-        return new Wall(initialPosition, finalPosition, WallLayout.BOTTOM_LEFT);
-    }
-
-    /**
-     * Creates a left bottom wall for a {@link Silo}.
-     *
-     * @param width The width of the {@link Silo} (must be positive).
-     * @param hole  The hole length.
-     * @return The created wall.
-     * @throws IllegalArgumentException In case the length or width are not positive.
-     */
-    public static Wall getRightBottomWall(final double width, final double hole) throws IllegalArgumentException {
-        final Vector2D initialPosition = new Vector2D((width + hole) / 2, 0);
-        final Vector2D finalPosition = new Vector2D(width, 0);
-        return new Wall(initialPosition, finalPosition, WallLayout.BOTTOM_RIGHT);
-    }
-
-    /**
-     * Creates a left bottom wall for a {@link Silo}.
-     *
-     * @param length The length of the {@link Silo} (must be positive).
-     * @return The created wall.
-     * @throws IllegalArgumentException In case the length or width are not positive.
-     */
-    public static Wall getLeftWall(final double length) throws IllegalArgumentException {
-        final Vector2D initialPosition = new Vector2D(0, 0);
-        final Vector2D finalPosition = new Vector2D(0, length);
-        return new Wall(initialPosition, finalPosition, WallLayout.LEFT);
-    }
-
-    /**
-     * Creates a left bottom wall for a {@link Silo}.
-     *
-     * @param length The length of the {@link Silo} (must be positive).
-     * @param width  The width of the {@link Silo} (must be positive).
-     * @return The created wall.
-     * @throws IllegalArgumentException In case the length or width are not positive.
-     */
-    public static Wall getRightWall(final double length, final double width) throws IllegalArgumentException {
-        final Vector2D initialPosition = new Vector2D(width, 0);
-        final Vector2D finalPosition = new Vector2D(width, length);
-        return new Wall(initialPosition, finalPosition, WallLayout.RIGHT);
-    }
-
-    /**
-     * Enum containing the wall layouts (i.e horizontal and vertical).
-     */
-    private enum WallLayout {
-        /**
-         * Indicates that this is a top wall.
-         */
-        TOP,
-        /**
-         * Indicates that this is a bottom left wall.
-         */
-        BOTTOM_LEFT,
-        /**
-         * Indicates that this is a bottom right wall.
-         */
-        BOTTOM_RIGHT,
-        /**
-         * Indicates that this is a right wall.
-         */
-        RIGHT,
-        /**
-         * Indicates that this is a left wall.
-         */
-        LEFT
-    }
 
     /**
      * Represents the state of a {@link Wall}.
