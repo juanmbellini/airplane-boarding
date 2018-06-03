@@ -11,6 +11,35 @@ import org.springframework.util.Assert;
  */
 public class Particle implements StateHolder<Particle.ParticleState> {
 
+    //TODO: move to system
+
+    /**
+     * The minimum radius a {@link Particle} can have
+     */
+    public static final double MIN_RADIUS = 0.1;
+
+    /**
+     * The maximum radius a {@link Particle} can have
+     */
+    public static final double MAX_RADIUS = 0.32;
+
+    /**
+     * Mean time a {@link Particle} needs to get to the minimum radius
+     */
+    public static final double TAO = 0.5;
+
+    /**
+     * Experimental constant that defines the linearity between velocity changes and blocks avoidance
+     */
+    public static final double BETA = 0.9;
+
+    /**
+     * The maximum velocity a {@link Particle} can have
+     */
+    public static final double MAX_VELOCITY = 1.55;
+
+    // Until here.
+
     /**
      * The particle's radius.
      */
@@ -78,31 +107,46 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     }
 
     // ================================================================================================================
-    // Setters
+    // Update
     // ================================================================================================================
 
-    public void update(final double dt) {
-        Assert.state(isOverlapping != null, "We must check overlapping states before updating");
+    /**
+     * Updates the particle's position
+     *
+     * @param deltaT the elapsed time
+     */
+    public void updatePosition(final double deltaT) {
+        position.add(getVelocity().scalarMultiply(deltaT));
+    }
 
-        if (isOverlapping) {
-            //TODO: set radius to min radius
-            //TODO: set speed to vd max
-        } else {
-            //TODO: update speeds module according to betha and the radius
-            //TODO update radius
+    /**
+     * Updates the particle's radius
+     *
+     * @param deltaT the elapsed time
+     */
+    public void updateRadius(final double deltaT) {
+        radius = isOverlapping ? MIN_RADIUS : (radius + MAX_RADIUS / (TAO / deltaT));
+
+        if (radius > MAX_RADIUS) {
+            radius = MAX_RADIUS;
         }
-
-        updatePosition(dt);
-
-        //We clear the overlapping state
-        isOverlapping = null;
     }
 
-    private void updatePosition(final double dt) {
-        position.add(getVelocity().scalarMultiply(dt));
+    /**
+     * Updates the particle's velocity
+     *
+     * @param deltaT the elapsed time
+     * @param direction the direction to the goal
+     */
+    //TODO: el vector direction se calcula usando las direcciones de escape de las particulas (EQ 6 y 7)
+    public void updateVelocity(final double deltaT, final Vector2D direction) {
+        final double velocityModule = isOverlapping ? MAX_VELOCITY :
+            (MAX_VELOCITY * Math.pow((radius - MIN_RADIUS)/(MAX_RADIUS - MIN_RADIUS) , BETA));
+
+        velocity = direction.scalarMultiply(velocityModule);
     }
 
-    // ================================================================================================================
+// ================================================================================================================
     // Others
     // ================================================================================================================
 
