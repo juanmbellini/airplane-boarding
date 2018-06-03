@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Created by Juan Marcos Bellini on 3/6/18.
+ * Class in charge of initializing the system.
  */
 public class ComponentsProvider {
 
