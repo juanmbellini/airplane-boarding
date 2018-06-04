@@ -86,7 +86,7 @@ public class ComponentsProvider {
         this.xMin = -roomWidth / 2;
         this.xMax = roomWidth / 2;
         this.yMin = 0;
-        this.yMax = roomDoorLength;
+        this.yMax = roomLength;
         this.halfRoomDoorLength = roomDoorLength / 2;
 
         this.startingRadius = startingRadius;
