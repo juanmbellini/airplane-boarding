@@ -114,19 +114,44 @@ public class ProgramArguments {
         private final double maxRadius;
 
         /**
+         * Mean time a particle needs to get to the minimum radius.
+         */
+        private final double tao;
+
+        /**
+         * Experimental constant that defines the linearity between speed changes and blocks avoidance.
+         */
+        private final double beta;
+
+        /**
+         * The max. speed a particle can reach.
+         */
+        private final double maxVelocityModule;
+
+        /**
          * Constructor.
          *
-         * @param maxAmount The max. amount of particles.
-         * @param minRadius The min. diameter for a particle.
-         * @param maxRadius The max. diameter for a particle.
+         * @param maxAmount         The max. amount of particles.
+         * @param minRadius         The min. diameter for a particle.
+         * @param maxRadius         The max. diameter for a particle.
+         * @param tao               Mean time a particle needs to get to the minimum radius.
+         * @param beta              Experimental constant that defines the linearity
+         *                          between speed changes and blocks avoidance.
+         * @param maxVelocityModule The max. speed a particle can reach.
          */
         @Autowired
         public ParticleProperties(@Value("${custom.system.particle.max-amount}") final int maxAmount,
                                   @Value("${custom.system.particle.min-radius}") final double minRadius,
-                                  @Value("${custom.system.particle.max-radius}") final double maxRadius) {
+                                  @Value("${custom.system.particle.max-radius}") final double maxRadius,
+                                  @Value("${custom.system.particle.tao}") final double tao,
+                                  @Value("${custom.system.particle.beta}") final double beta,
+                                  @Value("${custom.system.particle.max-speed}") final double maxVelocityModule) {
             this.maxAmount = maxAmount;
             this.minRadius = minRadius;
             this.maxRadius = maxRadius;
+            this.tao = tao;
+            this.beta = beta;
+            this.maxVelocityModule = maxVelocityModule;
         }
 
         /**
@@ -148,6 +173,27 @@ public class ProgramArguments {
          */
         public double getMaxRadius() {
             return maxRadius;
+        }
+
+        /**
+         * @return Mean time a particle needs to get to the minimum radius.
+         */
+        public double getTao() {
+            return tao;
+        }
+
+        /**
+         * @return Experimental constant that defines the linearity between speed changes and blocks avoidance.
+         */
+        public double getBeta() {
+            return beta;
+        }
+
+        /**
+         * @return The max. speed a particle can reach.
+         */
+        public double getMaxVelocityModule() {
+            return maxVelocityModule;
         }
     }
 

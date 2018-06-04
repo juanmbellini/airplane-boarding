@@ -87,13 +87,20 @@ public class Room implements System<Room.RoomState> {
      * @param door                 The room's door size.
      * @param maxAmountOfParticles The max. amount of particles.
      * @param minRadius            The min. radius of a {@link Particle}.
+     * @param maxRadius            The max. radius of a {@link Particle}.
+     * @param tao                  Mean time a {@link Particle} needs to get to the minimum radius.
+     * @param beta                 Experimental constant that defines the linearity
+     *                             between speed changes and blocks avoidance for a {@link Particle}.
+     * @param maxVelocityModule    The max. speed a {@link Particle} can reach.
      * @param timeStep             The time step.
      * @param duration             The amount of time the simulation will last.
      */
     public Room(final double length, final double width, final double door,
+                final double minRadius, final double maxRadius, double tao, double beta, double maxVelocityModule,
                 final int maxAmountOfParticles,
-                final double minRadius, final double timeStep, final double duration) {
-        this.componentsProvider = new ComponentsProvider(length, width, door, minRadius, maxAmountOfParticles);
+                final double timeStep, final double duration) {
+        this.componentsProvider = new ComponentsProvider(length, width, door,
+                minRadius, maxRadius, tao, beta, maxVelocityModule, maxAmountOfParticles);
         this.walls = componentsProvider.buildWalls();
         this.particles = componentsProvider.createParticles();
 
