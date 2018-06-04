@@ -67,9 +67,9 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     /**
      * Constructor.
      *
-     * @param radius       The particle's radius.
-     * @param position     The particle's position (represented as a 2D vector).
-     * @param velocity     The particle's velocity (represented as a 2D vector).
+     * @param radius   The particle's radius.
+     * @param position The particle's position (represented as a 2D vector).
+     * @param velocity The particle's velocity (represented as a 2D vector).
      */
     public Particle(final double radius, final Vector2D position, final Vector2D velocity) {
         validateRadius(radius);
@@ -151,7 +151,7 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     // ================================================================================================================
 
     /**
-     * Updates particle overlaping state
+     * Updates particle overlapping state
      *
      * @param particle Other.
      * @return {@code true} if the new particle would overlap {@code this} particle, or {@code false} otherwise.
@@ -171,7 +171,7 @@ public class Particle implements StateHolder<Particle.ParticleState> {
      * @return {@code true} if the new particle would overlap {@code this} particle, or {@code false} otherwise.
      */
     public boolean doOverlap(final Vector2D position, final double radius) {
-        return this.radius + radius - this.position.distance(position) < 0;
+        return this.radius + radius - this.position.distance(position) > 0;
     }
 
     /**
