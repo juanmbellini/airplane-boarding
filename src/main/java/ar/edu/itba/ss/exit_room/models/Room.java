@@ -25,7 +25,7 @@ public class Room implements System<Room.RoomState> {
     /**
      * The {@link Particle}s in this room.
      */
-    private final List<Particle> particles; //TODO: make final
+    private final List<Particle> particles;
 
     // ================================================================================================================
     // Update stuff
