@@ -56,9 +56,29 @@ public class ComponentsProvider {
     // ================================================================================================================
 
     /**
-     * The starting radius of the {@link Particle}s to be created.
+     * The min. radius of the {@link Particle}s to be created (which will be the starting radius).
      */
-    private final double startingRadius;
+    private final double minRadius;
+
+    /**
+     * The max. radius of the {@link Particle}s to be created.
+     */
+    private final double maxRadius;
+    /**
+     * Mean time a particle needs to get to the minimum radius.
+     */
+    private final double tao;
+
+    /**
+     * Experimental constant that defines the linearity between speed changes and blocks avoidance.
+     */
+    private final double beta;
+
+    /**
+     * The max. speed a particle can reach.
+     */
+    private final double maxVelocityModule;
+
     /**
      * The max. amount of {@link Particle}s to be created.
      */
@@ -70,16 +90,26 @@ public class ComponentsProvider {
      * @param roomLength           The room's length.
      * @param roomWidth            The room's width.
      * @param roomDoorLength       The door's length.
-     * @param startingRadius       The starting radius of the particles.
+     * @param minRadius            The min. radius of the {@link Particle}s to be created
+     *                             (which will be the starting radius).
+     * @param maxRadius            The max. amount of {@link Particle}s to be created.
+     * @param tao                  Mean time a {@link Particle} needs to get to the minimum radius.
+     * @param beta                 Experimental constant that defines the linearity
+     *                             between speed changes and blocks avoidance for a {@link Particle}.
+     * @param maxVelocityModule    The max. speed a {@link Particle} can reach.
      * @param maxAmountOfParticles The max. amount of particles.
      */
     public ComponentsProvider(final double roomLength, final double roomWidth, final double roomDoorLength,
-                              final double startingRadius, final int maxAmountOfParticles) {
+                              final double minRadius, double maxRadius,
+                              double tao, double beta, double maxVelocityModule,
+                              final int maxAmountOfParticles) {
         Assert.isTrue(roomLength > 0 && roomWidth > 0 && roomDoorLength > 0,
                 "The dimensions of the room must be positive");
         Assert.isTrue(roomWidth > roomDoorLength,
                 "The door length must be greater than the width of the room");
-        Assert.isTrue(startingRadius > 0, "The starting radius must be positive");
+
+        // For particles only validate amount of them,
+        // as the rest of the arguments are being validated already by the Particle class
         Assert.isTrue(maxAmountOfParticles > 0, "The max. amount of particles must be positive");
 
         // Set the origin in the middle of the door
@@ -88,8 +118,11 @@ public class ComponentsProvider {
         this.yMin = 0;
         this.yMax = roomLength;
         this.halfRoomDoorLength = roomDoorLength / 2;
-
-        this.startingRadius = startingRadius;
+        this.minRadius = minRadius;
+        this.maxRadius = maxRadius;
+        this.tao = tao;
+        this.beta = beta;
+        this.maxVelocityModule = maxVelocityModule;
         this.maxAmountOfParticles = maxAmountOfParticles;
     }
 
@@ -119,13 +152,14 @@ public class ComponentsProvider {
         final List<Particle> particles = new LinkedList<>();
         int tries = 0; // Will count the amount of consecutive failed tries of adding randomly a particle into the list.
         while (tries < MAX_AMOUNT_OF_TRIES && particles.size() < maxAmountOfParticles) {
-            final double xPosition = (xMin + startingRadius)
-                    + new Random().nextDouble() * ((xMax - startingRadius) - (xMin + startingRadius));
-            final double yPosition = (yMin + startingRadius)
-                    + new Random().nextDouble() * ((yMax - startingRadius) - (yMin + startingRadius));
+            final double xPosition = (xMin + minRadius)
+                    + new Random().nextDouble() * ((xMax - minRadius) - (xMin + minRadius));
+            final double yPosition = (yMin + minRadius)
+                    + new Random().nextDouble() * ((yMax - minRadius) - (yMin + minRadius));
             final Vector2D position = new Vector2D(xPosition, yPosition);
-            if (particles.stream().noneMatch(p -> p.doOverlap(position, startingRadius))) {
-                particles.add(new Particle(startingRadius, position, Vector2D.ZERO));
+            if (particles.stream().noneMatch(p -> p.doOverlap(position, minRadius))) {
+                particles.add(new Particle(minRadius, position, Vector2D.ZERO, // TODO: starting velocity?
+                        minRadius, maxRadius, tao, beta, maxVelocityModule));
                 tries = 0; // When a particle is added, the counter of consecutive failed tries must be set to zero.
             } else {
                 tries++;

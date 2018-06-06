@@ -31,6 +31,21 @@
       "description": "The max. radius of a particle."
     },
     {
+      "name": "custom.system.particle.tao",
+      "type": "java.lang.Double",
+      "description": "The mean time a particle need to get to the minimum radius."
+    },
+    {
+      "name": "custom.system.particle.beta",
+      "type": "java.lang.Double",
+      "description": "Experimental constant that defines the linearity between speed changes and blocks avoidance."
+    },
+    {
+      "name": "custom.system.particle.max-speed",
+      "type": "java.lang.Double",
+      "description": "The max. speed a particle can reach."
+    },
+    {
       "name": "custom.simulation.duration",
       "type": "java.lang.Double",
       "description": "The Simulation's duration, in seconds."
