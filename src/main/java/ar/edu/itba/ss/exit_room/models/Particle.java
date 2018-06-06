@@ -5,11 +5,16 @@ import ar.edu.itba.ss.g7.engine.simulation.StateHolder;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.springframework.util.Assert;
 
+import java.util.List;
+import java.util.Random;
+
 
 /**
  * Represents a particle in the system.
  */
-public class Particle implements StateHolder<Particle.ParticleState> {
+public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
+
+    private static final Vector2D GOAL = new Vector2D(0, 0); // TODO: Move to Room
 
     // ================================================================================================================
     // Model state
@@ -36,9 +41,20 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     // ================================================================================================================
 
     /**
-     * Tells wherever or not the particle is overlapping another particle in this moment.
+     * Point to which this particle will try to move.
      */
-    private Boolean isOverlapping;
+    private Vector2D goal = GOAL; // TODO: define a class for this? something similar as a particle (position and radius?
+
+    /**
+     * Flag indicating whether this particle reached the goal
+     * (i.e will be used to calculate a new goal in order to go away from the initial one).
+     */
+    private boolean reachedGoal;
+
+    /**
+     * Flag indicating if this particle can move (i.e was prepared with the {@link #prepareMove(List, double)} method).
+     */
+    private boolean canMove;
 
     /**
      * The min. radius this particle can have.
@@ -104,6 +120,8 @@ public class Particle implements StateHolder<Particle.ParticleState> {
         this.tao = tao;
         this.beta = beta;
         this.maxVelocityModule = maxVelocityModule;
+        this.reachedGoal = false;
+        this.canMove = false;
     }
 
 
@@ -137,59 +155,75 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     // Update
     // ================================================================================================================
 
-    /**
-     * Updates the particle's position
-     *
-     * @param deltaT the elapsed time
-     */
-    public void updatePosition(final double deltaT) {
-        position.add(getVelocity().scalarMultiply(deltaT));
-    }
 
     /**
-     * Updates the particle's radius
+     * Prepares this particle to be moved.
      *
-     * @param deltaT the elapsed time
+     * @param inContact The {@link Obstacle}s that are in contact with this particle.
+     * @param timeStep  The time step.
      */
-    public void updateRadius(final double deltaT) {
-        radius = isOverlapping ? minRadius : (radius + maxRadius / (tao / deltaT));
-        if (radius > maxRadius) {
-            radius = maxRadius;
+    public void prepareMove(final List<Obstacle> inContact, final double timeStep) {
+        if (inContact.isEmpty()) {
+            // Particle is not in contact with any obstacle (i.e does not overlap with anything)
+            // Radius
+            final double auxRadius = radius + maxRadius / (tao / timeStep);
+            this.radius = auxRadius > maxRadius ? maxRadius : auxRadius;
+            // Velocity
+            final double speed = maxVelocityModule * Math.pow((radius - minRadius) / (maxRadius - minRadius), beta);
+            final Vector2D goalDirection = goal.subtract(this.position).normalize();
+            this.velocity = goalDirection.scalarMultiply(speed);
+        } else {
+            // Particle is in contact with those obstacles in the list (i.e it overlaps)
+            // Radius
+            this.radius = minRadius;
+            // Velocity
+            final Vector2D escapeDirection = inContact.stream()
+                    .map(obstacle -> obstacle.getEscapeDirection(this))
+                    .reduce(Vector2D.ZERO, Vector2D::add)
+                    .normalize();
+            this.velocity = escapeDirection.scalarMultiply(maxVelocityModule); // Escape velocity is the same as max
         }
+        this.canMove = true;
     }
 
     /**
-     * Updates the particle's velocity
+     * Moves this particles according to the preparation it got.
      *
-     * @param deltaT    the elapsed time
-     * @param direction the direction to the goal
+     * @param timeStep The time step.
      */
-    //TODO: el vector direction se calcula usando las direcciones de escape de las particulas (EQ 6 y 7)
-    public void updateVelocity(final double deltaT, final Vector2D direction) {
-        final double velocityModule = isOverlapping ? maxVelocityModule :
-                (maxVelocityModule * Math.pow((radius - minRadius) / (maxRadius - minRadius), beta));
+    public void move(final double timeStep) {
+        Assert.state(canMove, "The particle cannot move because it was not prepared yet. " +
+                "Call the prepareMove(List, double) first before each move.");
+        this.position = position.add(getVelocity().scalarMultiply(timeStep));
 
-        velocity = direction.scalarMultiply(velocityModule);
+        // TODO: improve this
+        final Vector2D sub = this.position.subtract(GOAL);
+        if (!reachedGoal && this.position.getY() <= 0 || Math.abs(sub.getX()) < 1.0 && Math.abs(sub.getY()) < 0.6) {
+            reachedGoal = true;
+            goal = new Vector2D(-10d + new Random().nextDouble() * 20d, -20 + new Random().nextDouble() * -10d);
+        }
+
+        this.canMove = false;
+    }
+
+    // ================================================================================================================
+    // Obstacle
+    // ================================================================================================================
+
+    @Override
+    public boolean doOverlap(final Particle particle) {
+        return doOverlap(particle.getPosition(), particle.getRadius());
+    }
+
+    @Override
+    public Vector2D getEscapeDirection(final Particle particle) {
+        return particle.getPosition().subtract(this.position).normalize();
     }
 
 
     // ================================================================================================================
     // Others
     // ================================================================================================================
-
-    /**
-     * Updates particle overlapping state
-     *
-     * @param particle Other.
-     * @return {@code true} if the new particle would overlap {@code this} particle, or {@code false} otherwise.
-     */
-    public boolean doOverlap(final Particle particle) {
-        if (Boolean.TRUE.equals(isOverlapping)) {
-            return true;
-        }
-        isOverlapping = doOverlap(particle.getPosition(), particle.getRadius());
-        return isOverlapping;
-    }
 
     /**
      * Checks if another particle can be created with the given {@code position} and {@code radius} arguments.
