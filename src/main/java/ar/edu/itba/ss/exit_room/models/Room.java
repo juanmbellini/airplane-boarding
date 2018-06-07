@@ -7,6 +7,7 @@ import ar.edu.itba.ss.g7.engine.simulation.State;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Represents the room to be simulated (i.e the {@link System} to be simulated).
@@ -146,7 +147,7 @@ public class Room implements System<Room.RoomState> {
      * @return {@code true} if the simulation should stop, or {@code false} otherwise.
      */
     public boolean shouldStop() {
-        return actualTime > duration;
+        return actualTime > duration; // TODO: improve?
     }
 
 
@@ -156,8 +157,21 @@ public class Room implements System<Room.RoomState> {
 
     @Override
     public void update() {
-        //TODO: implement
-
+        this.clean = false;
+        // First, prepare the particles in order to be moved
+        for (Particle particle : particles) {
+            final List<Obstacle> inContact = Stream
+                    .concat(
+                            walls.stream(),
+                            particles.stream().filter(otherParticle -> otherParticle != particle)
+                    )
+                    .filter(obstacle -> obstacle.doOverlap(particle))
+                    .collect(Collectors.toList());
+            particle.prepareMove(inContact, timeStep);
+        }
+        // Then, move
+        particles.forEach(particle -> particle.move(timeStep));
+        // Finally, update time
         this.actualTime += timeStep;
     }
 
@@ -170,13 +184,13 @@ public class Room implements System<Room.RoomState> {
         this.particles.clear();
         this.walls.addAll(componentsProvider.buildWalls());
         this.particles.addAll(componentsProvider.createParticles());
+        this.clean = true;
     }
 
     @Override
     public RoomState outputState() {
         return new RoomState(this);
     }
-
 
     // ================================================================================================================
     // Helpers

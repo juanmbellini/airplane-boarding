@@ -5,11 +5,14 @@ import ar.edu.itba.ss.g7.engine.simulation.StateHolder;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.springframework.util.Assert;
 
+import java.util.List;
+import java.util.function.Supplier;
+
 
 /**
  * Represents a particle in the system.
  */
-public class Particle implements StateHolder<Particle.ParticleState> {
+public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
 
     // ================================================================================================================
     // Model state
@@ -36,9 +39,38 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     // ================================================================================================================
 
     /**
-     * Tells wherever or not the particle is overlapping another particle in this moment.
+     * The {@link Goal} to which the particle must reach.
      */
-    private Boolean isOverlapping;
+    private Goal goal;
+
+    /**
+     * A {@link Supplier} of {@link Goal} to be used to place a get a new one
+     * once this particle has reached the original one.
+     */
+    private final Supplier<Goal> newGoalSupplier;
+
+    /**
+     * Flag indicating whether this particle reached the goal
+     * (i.e will be used to calculate a new goal in order to go away from the initial one).
+     */
+    private boolean reachedGoal;
+
+    /**
+     * Auxiliary variable that holds the new radius
+     * (i.e is saved here in order to keep the original value not being modified before movement, as is used by others).
+     */
+    private Double newRadius;
+
+    /**
+     * Auxiliary variable that holds the new velocity
+     * (i.e is saved here in order to keep the original value not being modified before movement, as is used by others).
+     */
+    private Vector2D newVelocity;
+
+    /**
+     * Flag indicating if this particle can move (i.e was prepared with the {@link #prepareMove(List, double)} method).
+     */
+    private boolean canMove;
 
     /**
      * The min. radius this particle can have.
@@ -76,6 +108,9 @@ public class Particle implements StateHolder<Particle.ParticleState> {
      * @param radius            The particle's radius.
      * @param position          The particle's position (represented as a 2D vector).
      * @param velocity          The particle's velocity (represented as a 2D vector).
+     * @param goal              The {@link Goal} to which the particle must reach.
+     * @param newGoalSupplier   A {@link Supplier} of {@link Goal} to be used to place a get a new one
+     *                          once this particle has reached the original one.
      * @param minRadius         The min. radius this particle can have.
      * @param maxRadius         The max. radius this particle can have.
      * @param tao               Mean time a particle needs to get to the minimum radius.
@@ -84,13 +119,16 @@ public class Particle implements StateHolder<Particle.ParticleState> {
      * @param maxVelocityModule The max. speed a particle can reach.
      */
     public Particle(final double radius, final Vector2D position, final Vector2D velocity,
+                    final Goal goal, final Supplier<Goal> newGoalSupplier,
                     final double minRadius, final double maxRadius,
-                    double tao, double beta, double maxVelocityModule) {
+                    final double tao, final double beta, final double maxVelocityModule) {
 
         // First, validate
         validateRadius(radius, minRadius, maxRadius);
         validateVector(position);
         validateVector(velocity);
+        validateGoal(goal);
+        validateNewGoalSupplier(newGoalSupplier);
         validateTao(tao);
         validateBeta(beta);
         validateMaxVelocityModule(maxVelocityModule);
@@ -99,11 +137,15 @@ public class Particle implements StateHolder<Particle.ParticleState> {
         this.radius = radius;
         this.position = position;
         this.velocity = velocity;
+        this.goal = goal;
+        this.newGoalSupplier = newGoalSupplier;
         this.minRadius = minRadius;
         this.maxRadius = maxRadius;
         this.tao = tao;
         this.beta = beta;
         this.maxVelocityModule = maxVelocityModule;
+        this.reachedGoal = false;
+        this.canMove = false;
     }
 
 
@@ -137,59 +179,80 @@ public class Particle implements StateHolder<Particle.ParticleState> {
     // Update
     // ================================================================================================================
 
-    /**
-     * Updates the particle's position
-     *
-     * @param deltaT the elapsed time
-     */
-    public void updatePosition(final double deltaT) {
-        position.add(getVelocity().scalarMultiply(deltaT));
-    }
 
     /**
-     * Updates the particle's radius
+     * Prepares this particle to be moved.
      *
-     * @param deltaT the elapsed time
+     * @param inContact The {@link Obstacle}s that are in contact with this particle.
+     * @param timeStep  The time step.
      */
-    public void updateRadius(final double deltaT) {
-        radius = isOverlapping ? minRadius : (radius + maxRadius / (tao / deltaT));
-        if (radius > maxRadius) {
-            radius = maxRadius;
+    public void prepareMove(final List<Obstacle> inContact, final double timeStep) {
+        if (inContact.isEmpty()) {
+            // Particle is not in contact with any obstacle (i.e does not overlap with anything)
+            // Radius
+            final double auxRadius = radius + maxRadius / (tao / timeStep);
+            this.newRadius = auxRadius > maxRadius ? maxRadius : auxRadius;
+            // Velocity
+            final double speed = maxVelocityModule * Math.pow((newRadius - minRadius) / (maxRadius - minRadius), beta);
+            final Vector2D goalDirection = goal.getCenter().subtract(this.position).normalize();
+            this.newVelocity = goalDirection.scalarMultiply(speed);
+        } else {
+            // Particle is in contact with those obstacles in the list (i.e it overlaps)
+            // Radius
+            this.newRadius = minRadius;
+            // Velocity
+            final Vector2D escapeDirection = inContact.stream()
+                    .map(obstacle -> obstacle.getEscapeDirection(this))
+                    .reduce(Vector2D.ZERO, Vector2D::add)
+                    .normalize();
+            this.newVelocity = escapeDirection.scalarMultiply(maxVelocityModule); // Escape velocity is the same as max
         }
+        this.canMove = true;
     }
 
     /**
-     * Updates the particle's velocity
+     * Moves this particles according to the preparation it got.
      *
-     * @param deltaT    the elapsed time
-     * @param direction the direction to the goal
+     * @param timeStep The time step.
      */
-    //TODO: el vector direction se calcula usando las direcciones de escape de las particulas (EQ 6 y 7)
-    public void updateVelocity(final double deltaT, final Vector2D direction) {
-        final double velocityModule = isOverlapping ? maxVelocityModule :
-                (maxVelocityModule * Math.pow((radius - minRadius) / (maxRadius - minRadius), beta));
+    public void move(final double timeStep) {
+        Assert.state(canMove, "The particle cannot move because it was not prepared yet. " +
+                "Call the prepareMove(List, double) first before each move.");
+        this.radius = newRadius;
+        this.velocity = newVelocity;
+        this.position = position.add(getVelocity().scalarMultiply(timeStep));
 
-        velocity = direction.scalarMultiply(velocityModule);
+        if (!reachedGoal && goal.isNear(this)) {
+            // Only assign a new one if the original one is reached and the particle is moving towards it
+            reachedGoal = true;
+            this.goal = newGoalSupplier.get();
+        }
+
+        this.canMove = false;
+        this.newRadius = null;
+        this.newVelocity = null;
+    }
+
+    // ================================================================================================================
+    // Obstacle
+    // ================================================================================================================
+
+    @Override
+    public boolean doOverlap(final Particle particle) {
+        return doOverlap(particle.getPosition(), particle.getRadius());
+    }
+
+    @Override
+    public Vector2D getEscapeDirection(final Particle particle) {
+        Assert.state(doOverlap(particle),
+                "Tried to calculate an escape direction with a particle that is not overlapping");
+        return particle.getPosition().subtract(this.position).normalize();
     }
 
 
     // ================================================================================================================
     // Others
     // ================================================================================================================
-
-    /**
-     * Updates particle overlapping state
-     *
-     * @param particle Other.
-     * @return {@code true} if the new particle would overlap {@code this} particle, or {@code false} otherwise.
-     */
-    public boolean doOverlap(final Particle particle) {
-        if (Boolean.TRUE.equals(isOverlapping)) {
-            return true;
-        }
-        isOverlapping = doOverlap(particle.getPosition(), particle.getRadius());
-        return isOverlapping;
-    }
 
     /**
      * Checks if another particle can be created with the given {@code position} and {@code radius} arguments.
@@ -223,6 +286,26 @@ public class Particle implements StateHolder<Particle.ParticleState> {
      */
     private static void validateVector(final Vector2D vector) throws IllegalArgumentException {
         Assert.notNull(vector, "The given vector is null");
+    }
+
+    /**
+     * Validates the given {@code goal}.
+     *
+     * @param goal The {@link Goal} to be validated.
+     * @throws IllegalArgumentException In case the given {@code goal} is not valid (i.e is {@code null}).
+     */
+    private static void validateGoal(final Goal goal) throws IllegalArgumentException {
+        Assert.notNull(goal, "The goal must not be null");
+    }
+
+    /**
+     * Validates the given {@code newGoalSupplier}.
+     *
+     * @param newGoalSupplier The {@link Supplier} of {@link Goal} to be validated.
+     * @throws IllegalArgumentException In case the given {@code newGoalSupplier} is not valid (i.e is {@code null}).
+     */
+    private static void validateNewGoalSupplier(final Supplier<Goal> newGoalSupplier) throws IllegalArgumentException {
+        Assert.notNull(newGoalSupplier, "The new goal supplier must not be null");
     }
 
     /**

@@ -1,5 +1,6 @@
 package ar.edu.itba.ss.exit_room.utils;
 
+import ar.edu.itba.ss.exit_room.models.Goal;
 import ar.edu.itba.ss.exit_room.models.Particle;
 import ar.edu.itba.ss.exit_room.models.Wall;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -149,6 +150,7 @@ public class ComponentsProvider {
      * @return The {@link List} of {@link Particle}s.
      */
     public List<Particle> createParticles() {
+        final Goal goal = buildGoalForParticles();
         final List<Particle> particles = new LinkedList<>();
         int tries = 0; // Will count the amount of consecutive failed tries of adding randomly a particle into the list.
         while (tries < MAX_AMOUNT_OF_TRIES && particles.size() < maxAmountOfParticles) {
@@ -158,13 +160,36 @@ public class ComponentsProvider {
                     + new Random().nextDouble() * ((yMax - minRadius) - (yMin + minRadius));
             final Vector2D position = new Vector2D(xPosition, yPosition);
             if (particles.stream().noneMatch(p -> p.doOverlap(position, minRadius))) {
-                particles.add(new Particle(minRadius, position, Vector2D.ZERO, // TODO: starting velocity?
-                        minRadius, maxRadius, tao, beta, maxVelocityModule));
+                particles.add(new Particle(minRadius, position, Vector2D.ZERO,
+                        goal, this::buildNewRandomOutsideGoal, minRadius, maxRadius, tao, beta, maxVelocityModule));
                 tries = 0; // When a particle is added, the counter of consecutive failed tries must be set to zero.
             } else {
                 tries++;
             }
         }
         return particles;
+    }
+
+    /**
+     * Builds a {@link Goal} for the {@link Particle}s that are going to be created by this {@link ComponentsProvider}
+     * (i.e having into account the room - or walls - that are built).
+     *
+     * @return The built {@link Goal}.
+     */
+    private Goal buildGoalForParticles() {
+        final Vector2D center = new Vector2D(0, 0);
+        final double margin = halfRoomDoorLength - minRadius;
+        return new Goal(center, margin, margin);
+    }
+
+    /**
+     * Builds a new random {@link Goal} that is outside the room.
+     *
+     * @return a new random {@link Goal}.
+     */
+    private Goal buildNewRandomOutsideGoal() {
+        final double xCenter = xMin + new Random().nextDouble() * (xMax - xMin);
+        final double yCenter = -2 * yMax + new Random().nextDouble() * (-yMax - (-2 * yMax));
+        return new Goal(new Vector2D(xCenter, yCenter), 0d, 0d);
     }
 }
