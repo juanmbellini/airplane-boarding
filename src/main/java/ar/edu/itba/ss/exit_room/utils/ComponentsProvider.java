@@ -189,7 +189,7 @@ public class ComponentsProvider {
      */
     private Goal buildNewRandomOutsideGoal() {
         final double xCenter = xMin + new Random().nextDouble() * (xMax - xMin);
-        final double yCenter = -2 * yMax + new Random().nextDouble() * (-yMax - (-2 * yMax));
+        final double yCenter = -yMax / 2 + new Random().nextDouble() * (-yMax / 4 - (-yMax / 2));
         return new Goal(new Vector2D(xCenter, yCenter), 0d, 0d, null, null, null, null);
     }
 }
