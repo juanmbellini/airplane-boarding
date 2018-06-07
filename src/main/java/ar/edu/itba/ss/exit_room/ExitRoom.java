@@ -44,13 +44,14 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
         final int maxAmountOfParticles = programArguments.getParticleProperties().getMaxAmount();
         final double timeStep = programArguments.getTimeStep();
         final double duration = programArguments.getDuration();
+        final String ovitoFilePath = programArguments.getOutputStuff().getOvitoFilePath();
 
         final Room room = new Room(length, width, door,
                 minRadius, maxRadius, tao, beta, maxVelocityModule, maxAmountOfParticles,
                 timeStep, duration);
 
         this.engine = new SimulationEngine<>(room);
-        this.ovitoFileSaver = new OvitoFileSaverImpl(programArguments.getOutputStuff().getOvitoFilePath());
+        this.ovitoFileSaver = new OvitoFileSaverImpl(ovitoFilePath, minRadius, maxRadius);
     }
 
 
