@@ -6,15 +6,13 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.springframework.util.Assert;
 
 import java.util.List;
-import java.util.Random;
+import java.util.function.Supplier;
 
 
 /**
  * Represents a particle in the system.
  */
 public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
-
-    private static final Vector2D GOAL = new Vector2D(0, 0); // TODO: Move to Room
 
     // ================================================================================================================
     // Model state
@@ -41,9 +39,15 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     // ================================================================================================================
 
     /**
-     * Point to which this particle will try to move.
+     * The {@link Goal} to which the particle must reach.
      */
-    private Vector2D goal = GOAL; // TODO: define a class for this? something similar as a particle (position and radius?
+    private Goal goal;
+
+    /**
+     * A {@link Supplier} of {@link Goal} to be used to place a get a new one
+     * once this particle has reached the original one.
+     */
+    private final Supplier<Goal> newGoalSupplier;
 
     /**
      * Flag indicating whether this particle reached the goal
@@ -104,6 +108,9 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
      * @param radius            The particle's radius.
      * @param position          The particle's position (represented as a 2D vector).
      * @param velocity          The particle's velocity (represented as a 2D vector).
+     * @param goal              The {@link Goal} to which the particle must reach.
+     * @param newGoalSupplier   A {@link Supplier} of {@link Goal} to be used to place a get a new one
+     *                          once this particle has reached the original one.
      * @param minRadius         The min. radius this particle can have.
      * @param maxRadius         The max. radius this particle can have.
      * @param tao               Mean time a particle needs to get to the minimum radius.
@@ -112,13 +119,16 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
      * @param maxVelocityModule The max. speed a particle can reach.
      */
     public Particle(final double radius, final Vector2D position, final Vector2D velocity,
+                    final Goal goal, final Supplier<Goal> newGoalSupplier,
                     final double minRadius, final double maxRadius,
-                    double tao, double beta, double maxVelocityModule) {
+                    final double tao, final double beta, final double maxVelocityModule) {
 
         // First, validate
         validateRadius(radius, minRadius, maxRadius);
         validateVector(position);
         validateVector(velocity);
+        validateGoal(goal);
+        validateNewGoalSupplier(newGoalSupplier);
         validateTao(tao);
         validateBeta(beta);
         validateMaxVelocityModule(maxVelocityModule);
@@ -127,6 +137,8 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         this.radius = radius;
         this.position = position;
         this.velocity = velocity;
+        this.goal = goal;
+        this.newGoalSupplier = newGoalSupplier;
         this.minRadius = minRadius;
         this.maxRadius = maxRadius;
         this.tao = tao;
@@ -182,7 +194,7 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
             this.newRadius = auxRadius > maxRadius ? maxRadius : auxRadius;
             // Velocity
             final double speed = maxVelocityModule * Math.pow((newRadius - minRadius) / (maxRadius - minRadius), beta);
-            final Vector2D goalDirection = goal.subtract(this.position).normalize();
+            final Vector2D goalDirection = goal.getCenter().subtract(this.position).normalize();
             this.newVelocity = goalDirection.scalarMultiply(speed);
         } else {
             // Particle is in contact with those obstacles in the list (i.e it overlaps)
@@ -210,11 +222,10 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         this.velocity = newVelocity;
         this.position = position.add(getVelocity().scalarMultiply(timeStep));
 
-        // TODO: improve this
-        final Vector2D sub = this.position.subtract(GOAL);
-        if (!reachedGoal && (this.position.getY() <= 0 || Math.abs(sub.getX()) < 0.5 && Math.abs(sub.getY()) < 0.5)) {
+        if (!reachedGoal && goal.isNear(this)) {
+            // Only assign a new one if the original one is reached and the particle is moving towards it
             reachedGoal = true;
-            goal = new Vector2D(-10d + new Random().nextDouble() * 20d, -30 + new Random().nextDouble() * 10d);
+            this.goal = newGoalSupplier.get();
         }
 
         this.canMove = false;
@@ -275,6 +286,26 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
      */
     private static void validateVector(final Vector2D vector) throws IllegalArgumentException {
         Assert.notNull(vector, "The given vector is null");
+    }
+
+    /**
+     * Validates the given {@code goal}.
+     *
+     * @param goal The {@link Goal} to be validated.
+     * @throws IllegalArgumentException In case the given {@code goal} is not valid (i.e is {@code null}).
+     */
+    private static void validateGoal(final Goal goal) throws IllegalArgumentException {
+        Assert.notNull(goal, "The goal must not be null");
+    }
+
+    /**
+     * Validates the given {@code newGoalSupplier}.
+     *
+     * @param newGoalSupplier The {@link Supplier} of {@link Goal} to be validated.
+     * @throws IllegalArgumentException In case the given {@code newGoalSupplier} is not valid (i.e is {@code null}).
+     */
+    private static void validateNewGoalSupplier(final Supplier<Goal> newGoalSupplier) throws IllegalArgumentException {
+        Assert.notNull(newGoalSupplier, "The new goal supplier must not be null");
     }
 
     /**
