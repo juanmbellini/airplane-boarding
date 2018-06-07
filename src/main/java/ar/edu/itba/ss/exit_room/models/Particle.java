@@ -174,6 +174,15 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         return velocity;
     }
 
+    /**
+     * Indicates whether this particle has already reached the goal.
+     *
+     * @return {@code true} if the particle reached the goal, or {@code false} otherwise.
+     */
+    public boolean hasReachedTheGoal() {
+        return reachedGoal;
+    }
+
 
     // ================================================================================================================
     // Update
@@ -222,7 +231,7 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         this.velocity = newVelocity;
         this.position = position.add(getVelocity().scalarMultiply(timeStep));
 
-        if (!reachedGoal && goal.isNear(this)) {
+        if (!reachedGoal && goal.reachedBy(this)) {
             // Only assign a new one if the original one is reached and the particle is moving towards it
             reachedGoal = true;
             this.goal = newGoalSupplier.get();
@@ -366,6 +375,11 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         private final Vector2D velocity;
 
         /**
+         * A flag indicating whether the {@link Particle} represented by the state has reached the goal.
+         */
+        private final boolean reachedGoal;
+
+        /**
          * Constructor.
          *
          * @param particle The {@link Particle}'s whose state will be represented.
@@ -374,6 +388,7 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
             radius = particle.getRadius();
             position = particle.getPosition(); // The Vector2D class is unmodifiable.
             velocity = particle.getVelocity(); // The Vector2D class is unmodifiable.
+            reachedGoal = particle.hasReachedTheGoal();
         }
 
         /**
@@ -395,6 +410,15 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
          */
         public Vector2D getVelocity() {
             return velocity;
+        }
+
+        /**
+         * A flag indicating whether the {@link Particle} represented by the state has reached the goal.
+         *
+         * @return {@code true} if the particle reached the goal, or {@code false} otherwise.
+         */
+        public boolean hasReachedTheGoal() {
+            return reachedGoal;
         }
     }
 }
