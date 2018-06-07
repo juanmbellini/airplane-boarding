@@ -179,7 +179,7 @@ public class ComponentsProvider {
     private Goal buildGoalForParticles() {
         final Vector2D center = new Vector2D(0, 0);
         final double margin = halfRoomDoorLength - minRadius;
-        return new Goal(center, margin, margin / 2, null, null, 0d, null);
+        return new Goal(center, margin, 0, null, null, 0d, null);
     }
 
     /**

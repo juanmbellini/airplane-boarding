@@ -147,7 +147,7 @@ public class Room implements System<Room.RoomState> {
      * @return {@code true} if the simulation should stop, or {@code false} otherwise.
      */
     public boolean shouldStop() {
-        return actualTime > duration; // TODO: improve?
+        return actualTime > duration;
     }
 
 
@@ -171,7 +171,10 @@ public class Room implements System<Room.RoomState> {
         }
         // Then, move
         particles.forEach(particle -> particle.move(timeStep));
-        // Finally, update time
+        // Finally, update internal variables
+        final long newTotalOutside = particles.stream().filter(Particle::hasReachedTheGoal).count();
+        this.newOutside = newTotalOutside - this.outsideParticles;
+        this.outsideParticles = newTotalOutside;
         this.actualTime += timeStep;
     }
 
