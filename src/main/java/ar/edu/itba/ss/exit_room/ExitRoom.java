@@ -17,7 +17,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import java.util.LinkedList;
 
 /**
- * Hello world!
+ * Main class.
  */
 @SpringBootApplication
 public class ExitRoom implements CommandLineRunner, InitializingBean {
@@ -27,13 +27,26 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(ExitRoom.class);
 
-
+    /**
+     * The {@link SimulationEngine}.
+     */
     private final SimulationEngine<Room.RoomState, Room> engine;
 
+    /**
+     * A {@link DataSaver} to output the Ovito file.
+     */
     private final DataSaver<Room.RoomState> ovitoFileSaver;
 
+    /**
+     * A {@link DataSaver} to output the Octave file.
+     */
     private final DataSaver<Room.RoomState> octaveFileSaver;
 
+    /**
+     * Constructor.
+     *
+     * @param programArguments The {@link ProgramArguments} for this simulation.
+     */
     @Autowired
     public ExitRoom(final ProgramArguments programArguments) {
         final double length = programArguments.getRoomProperties().getRoomLength();
@@ -96,6 +109,11 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
         LOGGER.info("Finished saving output in all formats.");
     }
 
+    /**
+     * Entry point.
+     *
+     * @param args The program arguments.
+     */
     public static void main(String[] args) {
         SpringApplication.run(ExitRoom.class, args);
     }
