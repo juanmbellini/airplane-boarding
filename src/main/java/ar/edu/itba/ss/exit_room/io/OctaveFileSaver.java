@@ -31,14 +31,14 @@ public class OctaveFileSaver extends TextFileSaver<Room.RoomState> {
      * @param duration The simulation duration.
      * @param timeStep The simulation time step.
      */
-    public OctaveFileSaver(String filePath, double duration, double timeStep) {
+    public OctaveFileSaver(final String filePath, final double duration, final double timeStep) {
         super(filePath);
         this.duration = duration;
         this.timeStep = timeStep;
     }
 
     @Override
-    public void doSave(Writer writer, Queue<Room.RoomState> queue) throws IOException {
+    public void doSave(final Writer writer, final Queue<Room.RoomState> queue) throws IOException {
         // Save amount of particles that left the room in each time step.
         final String left = "left = [" + queue.stream()
                 .map(Room.RoomState::getNewOutside)

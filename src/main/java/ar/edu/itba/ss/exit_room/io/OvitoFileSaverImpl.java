@@ -35,7 +35,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
      * @param particleMinRadius Min. particle radius (used to set colors).
      * @param particleMaxRadius Max. particle radius (used to set colors).
      */
-    public OvitoFileSaverImpl(String filePath, double particleMinRadius, double particleMaxRadius) {
+    public OvitoFileSaverImpl(final String filePath, final double particleMinRadius, final double particleMaxRadius) {
         super(filePath);
         this.particleMinRadius = particleMinRadius;
         this.particleMaxRadius = particleMaxRadius;
@@ -43,7 +43,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
     }
 
     @Override
-    public void saveState(Writer writer, Room.RoomState roomState, int frame) throws IOException {
+    public void saveState(final Writer writer, final Room.RoomState roomState, final int frame) throws IOException {
 
         final StringBuilder data = new StringBuilder();
         // First, headers
@@ -72,7 +72,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
      * @param data     The {@link StringBuilder} that is collecting data.
      * @param particle The {@link ar.edu.itba.ss.exit_room.models.Particle.ParticleState} with the data.
      */
-    private void saveParticle(final StringBuilder data, Particle.ParticleState particle) {
+    private void saveParticle(final StringBuilder data, final Particle.ParticleState particle) {
         data.append("")
                 .append(particle.getPosition().getX())
                 .append(" ")
