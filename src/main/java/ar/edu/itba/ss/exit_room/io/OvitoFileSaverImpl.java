@@ -82,7 +82,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
                 .append(" ")
                 .append(particle.getVelocity().getY())
                 .append(" ")
-                .append(particle.getRadius())
+                .append(particleMinRadius)
                 .append(" ")
                 .append(calculateRedForParticle(particle)) // Red
                 .append(" ")
