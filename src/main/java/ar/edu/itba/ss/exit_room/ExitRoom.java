@@ -1,5 +1,6 @@
 package ar.edu.itba.ss.exit_room;
 
+import ar.edu.itba.ss.exit_room.io.OctaveFileSaver;
 import ar.edu.itba.ss.exit_room.io.OvitoFileSaverImpl;
 import ar.edu.itba.ss.exit_room.io.ProgramArguments;
 import ar.edu.itba.ss.exit_room.models.Room;
@@ -31,6 +32,8 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
 
     private final DataSaver<Room.RoomState> ovitoFileSaver;
 
+    private final DataSaver<Room.RoomState> octaveFileSaver;
+
     @Autowired
     public ExitRoom(final ProgramArguments programArguments) {
         final double length = programArguments.getRoomProperties().getRoomLength();
@@ -45,6 +48,7 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
         final double timeStep = programArguments.getTimeStep();
         final double duration = programArguments.getDuration();
         final String ovitoFilePath = programArguments.getOutputStuff().getOvitoFilePath();
+        final String evacuationFilePath = programArguments.getOutputStuff().getOctaveFilePath();
 
         final Room room = new Room(length, width, door,
                 minRadius, maxRadius, tao, beta, maxVelocityModule, maxAmountOfParticles,
@@ -52,6 +56,7 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
 
         this.engine = new SimulationEngine<>(room);
         this.ovitoFileSaver = new OvitoFileSaverImpl(ovitoFilePath, minRadius, maxRadius);
+        this.octaveFileSaver = new OctaveFileSaver(evacuationFilePath, duration, timeStep);
     }
 
 
@@ -87,6 +92,7 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
     private void save() {
         LOGGER.info("Saving outputs...");
         ovitoFileSaver.save(new LinkedList<>(this.engine.getResults()));
+        octaveFileSaver.save(new LinkedList<>(this.engine.getResults()));
         LOGGER.info("Finished saving output in all formats.");
     }
 
