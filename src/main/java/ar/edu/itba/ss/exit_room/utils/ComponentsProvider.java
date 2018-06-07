@@ -158,7 +158,7 @@ public class ComponentsProvider {
                     + new Random().nextDouble() * ((yMax - minRadius) - (yMin + minRadius));
             final Vector2D position = new Vector2D(xPosition, yPosition);
             if (particles.stream().noneMatch(p -> p.doOverlap(position, minRadius))) {
-                particles.add(new Particle(minRadius, position, Vector2D.ZERO, // TODO: starting velocity?
+                particles.add(new Particle(minRadius, position, Vector2D.ZERO,
                         minRadius, maxRadius, tao, beta, maxVelocityModule));
                 tries = 0; // When a particle is added, the counter of consecutive failed tries must be set to zero.
             } else {

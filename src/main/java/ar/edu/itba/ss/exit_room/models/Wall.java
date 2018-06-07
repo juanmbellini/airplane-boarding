@@ -3,6 +3,7 @@ package ar.edu.itba.ss.exit_room.models;
 import ar.edu.itba.ss.g7.engine.simulation.State;
 import ar.edu.itba.ss.g7.engine.simulation.StateHolder;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.springframework.util.Assert;
 
 /**
  * Represents a wall in the system.
@@ -52,12 +53,20 @@ public final class Wall implements StateHolder<Wall.WallState>, Obstacle {
 
     @Override
     public boolean doOverlap(Particle particle) {
-        return particle.getRadius() - this.getProjectionInWall(particle).distance(particle.getPosition()) > 0;
+        final Vector2D projection = this.getProjectionInWall(particle);
+        final Vector2D directionVector = this.getDirectionVector();
+        final double argCosine = projection.dotProduct(directionVector)
+                / (projection.getNorm() * directionVector.getNorm());
+        return !(projection.getNorm() > directionVector.getNorm()) // Projection is bigger than wall
+                && !(argCosine == -1d)  // Projection is before wall (i.e points to the other side)
+                && particle.getRadius() - projection.add(initialPoint).distance(particle.getPosition()) > 0;
     }
 
     @Override
     public Vector2D getEscapeDirection(Particle particle) {
-        return particle.getPosition().subtract(this.getProjectionInWall(particle)).normalize();
+        Assert.state(doOverlap(particle),
+                "Tried to calculate an escape direction with a particle that is not overlapping");
+        return particle.getPosition().subtract(this.getProjectionInWall(particle).add(initialPoint)).normalize();
     }
 
 
@@ -73,8 +82,10 @@ public final class Wall implements StateHolder<Wall.WallState>, Obstacle {
     /**
      * Returns the projection of the given {@code particle} in this wall.
      *
-     * @param particle The {@link Particle} whose projection in this wall will be calcualted.
+     * @param particle The {@link Particle} whose projection in this wall will be calculated.
      * @return The projection of the given {@code particle} in this wall.
+     * @apiNote Note that if the projection vector (i.e the return value)
+     * can have a bigger norm than the direction vector, or point against it.
      */
     private Vector2D getProjectionInWall(final Particle particle) {
         final Vector2D directionVector = this.getDirectionVector();

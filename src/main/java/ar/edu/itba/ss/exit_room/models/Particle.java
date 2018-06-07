@@ -52,6 +52,18 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     private boolean reachedGoal;
 
     /**
+     * Auxiliary variable that holds the new radius
+     * (i.e is saved here in order to keep the original value not being modified before movement, as is used by others).
+     */
+    private Double newRadius;
+
+    /**
+     * Auxiliary variable that holds the new velocity
+     * (i.e is saved here in order to keep the original value not being modified before movement, as is used by others).
+     */
+    private Vector2D newVelocity;
+
+    /**
      * Flag indicating if this particle can move (i.e was prepared with the {@link #prepareMove(List, double)} method).
      */
     private boolean canMove;
@@ -167,21 +179,21 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
             // Particle is not in contact with any obstacle (i.e does not overlap with anything)
             // Radius
             final double auxRadius = radius + maxRadius / (tao / timeStep);
-            this.radius = auxRadius > maxRadius ? maxRadius : auxRadius;
+            this.newRadius = auxRadius > maxRadius ? maxRadius : auxRadius;
             // Velocity
-            final double speed = maxVelocityModule * Math.pow((radius - minRadius) / (maxRadius - minRadius), beta);
+            final double speed = maxVelocityModule * Math.pow((newRadius - minRadius) / (maxRadius - minRadius), beta);
             final Vector2D goalDirection = goal.subtract(this.position).normalize();
-            this.velocity = goalDirection.scalarMultiply(speed);
+            this.newVelocity = goalDirection.scalarMultiply(speed);
         } else {
             // Particle is in contact with those obstacles in the list (i.e it overlaps)
             // Radius
-            this.radius = minRadius;
+            this.newRadius = minRadius;
             // Velocity
             final Vector2D escapeDirection = inContact.stream()
                     .map(obstacle -> obstacle.getEscapeDirection(this))
                     .reduce(Vector2D.ZERO, Vector2D::add)
                     .normalize();
-            this.velocity = escapeDirection.scalarMultiply(maxVelocityModule); // Escape velocity is the same as max
+            this.newVelocity = escapeDirection.scalarMultiply(maxVelocityModule); // Escape velocity is the same as max
         }
         this.canMove = true;
     }
@@ -194,16 +206,20 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     public void move(final double timeStep) {
         Assert.state(canMove, "The particle cannot move because it was not prepared yet. " +
                 "Call the prepareMove(List, double) first before each move.");
+        this.radius = newRadius;
+        this.velocity = newVelocity;
         this.position = position.add(getVelocity().scalarMultiply(timeStep));
 
         // TODO: improve this
         final Vector2D sub = this.position.subtract(GOAL);
-        if (!reachedGoal && this.position.getY() <= 0 || Math.abs(sub.getX()) < 1.0 && Math.abs(sub.getY()) < 0.6) {
+        if (!reachedGoal && (this.position.getY() <= 0 || Math.abs(sub.getX()) < 0.5 && Math.abs(sub.getY()) < 0.5)) {
             reachedGoal = true;
-            goal = new Vector2D(-10d + new Random().nextDouble() * 20d, -20 + new Random().nextDouble() * -10d);
+            goal = new Vector2D(-10d + new Random().nextDouble() * 20d, -30 + new Random().nextDouble() * 10d);
         }
 
         this.canMove = false;
+        this.newRadius = null;
+        this.newVelocity = null;
     }
 
     // ================================================================================================================
@@ -217,6 +233,8 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
 
     @Override
     public Vector2D getEscapeDirection(final Particle particle) {
+        Assert.state(doOverlap(particle),
+                "Tried to calculate an escape direction with a particle that is not overlapping");
         return particle.getPosition().subtract(this.position).normalize();
     }
 
