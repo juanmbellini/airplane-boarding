@@ -268,11 +268,19 @@ public class ProgramArguments {
         private final String ovitoFilePath;
 
         /**
-         * @param ovitoFilePath Path for the Ovito file.
+         * Path for the octave file.
+         */
+        private final String octaveFilePath;
+
+        /**
+         * @param ovitoFilePath  Path for the Ovito file.
+         * @param octaveFilePath Path for the octave file.
          */
         @Autowired
-        public OutputStuff(@Value("${custom.output.ovito}") final String ovitoFilePath) {
+        public OutputStuff(@Value("${custom.output.ovito}") final String ovitoFilePath,
+                           @Value("${custom.output.octave}") final String octaveFilePath) {
             this.ovitoFilePath = ovitoFilePath;
+            this.octaveFilePath = octaveFilePath;
         }
 
         /**
@@ -280,6 +288,13 @@ public class ProgramArguments {
          */
         public String getOvitoFilePath() {
             return ovitoFilePath;
+        }
+
+        /**
+         * @return Path for the octave file.
+         */
+        public String getOctaveFilePath() {
+            return octaveFilePath;
         }
     }
 }

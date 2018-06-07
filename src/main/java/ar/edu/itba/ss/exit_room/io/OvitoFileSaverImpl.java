@@ -13,18 +13,37 @@ import java.io.Writer;
  */
 public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
 
+    /**
+     * Min. particle radius (used to set colors).
+     */
+    private final double particleMinRadius;
+    /**
+     * Max. particle radius (used to set colors).
+     */
+    private final double particleMaxRadius;
+
+    /**
+     * Difference between min. and max. radius (saved to avoid recalculating this each time).
+     */
+    private final double radiusDifference;
+
 
     /**
      * Constructor.
      *
-     * @param filePath Path to the file to be saved.
+     * @param filePath          Path to the file to be saved.
+     * @param particleMinRadius Min. particle radius (used to set colors).
+     * @param particleMaxRadius Max. particle radius (used to set colors).
      */
-    public OvitoFileSaverImpl(String filePath) {
+    public OvitoFileSaverImpl(final String filePath, final double particleMinRadius, final double particleMaxRadius) {
         super(filePath);
+        this.particleMinRadius = particleMinRadius;
+        this.particleMaxRadius = particleMaxRadius;
+        this.radiusDifference = particleMaxRadius - particleMinRadius;
     }
 
     @Override
-    public void saveState(Writer writer, Room.RoomState roomState, int frame) throws IOException {
+    public void saveState(final Writer writer, final Room.RoomState roomState, final int frame) throws IOException {
 
         final StringBuilder data = new StringBuilder();
         // First, headers
@@ -53,7 +72,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
      * @param data     The {@link StringBuilder} that is collecting data.
      * @param particle The {@link ar.edu.itba.ss.exit_room.models.Particle.ParticleState} with the data.
      */
-    private static void saveParticle(final StringBuilder data, Particle.ParticleState particle) {
+    private void saveParticle(final StringBuilder data, final Particle.ParticleState particle) {
         data.append("")
                 .append(particle.getPosition().getX())
                 .append(" ")
@@ -63,13 +82,13 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
                 .append(" ")
                 .append(particle.getVelocity().getY())
                 .append(" ")
-                .append(particle.getRadius())
+                .append(particleMinRadius)
                 .append(" ")
-                .append(1) // Red
+                .append(calculateRedForParticle(particle)) // Red
                 .append(" ")
-                .append(1) // Green
+                .append(calculateGreenForParticle(particle)) // Green
                 .append(" ")
-                .append(1) // Blue
+                .append(calculateBlueForParticle(particle)) // Blue
                 .append("\n");
     }
 
@@ -80,7 +99,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
      * @param data The {@link StringBuilder} that is collecting data.
      * @param wall The {@link ar.edu.itba.ss.exit_room.models.Wall.WallState} with the data.
      */
-    private static void saveWall(final StringBuilder data, final Wall.WallState wall) {
+    private void saveWall(final StringBuilder data, final Wall.WallState wall) {
         data.append("")
                 .append(wall.getInitialPoint().getX())
                 .append(" ")
@@ -94,9 +113,9 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
                 .append(" ")
                 .append(1) // Red
                 .append(" ")
-                .append(0) // Green
+                .append(1) // Green
                 .append(" ")
-                .append(0) // Blue
+                .append(1) // Blue
                 .append("\n")
                 .append(wall.getFinalPoint().getX())
                 .append(" ")
@@ -110,9 +129,41 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
                 .append(" ")
                 .append(1) // Red
                 .append(" ")
-                .append(0) // Green
+                .append(1) // Green
                 .append(" ")
-                .append(0) // Blue
+                .append(1) // Blue
                 .append("\n");
+    }
+
+    /**
+     * Provides the red component for the given particle.
+     *
+     * @param particleState The particle whose red color component is going to be calculated.
+     * @return The red component for the particle.
+     */
+    private double calculateRedForParticle(final Particle.ParticleState particleState) {
+        return particleState.hasReachedTheGoal() ?
+                0d : (particleMaxRadius - particleState.getRadius()) / radiusDifference;
+    }
+
+    /**
+     * Provides the green component for the given particle.
+     *
+     * @param particleState The particle whose green color component is going to be calculated.
+     * @return The green component for the particle.
+     */
+    private double calculateGreenForParticle(final Particle.ParticleState particleState) {
+        return particleState.hasReachedTheGoal() ?
+                0d : (particleState.getRadius() - particleMinRadius) / radiusDifference;
+    }
+
+    /**
+     * Provides the blue component for the given particle.
+     *
+     * @param particleState The particle whose blue color component is going to be calculated.
+     * @return The blue component for the particle.
+     */
+    private double calculateBlueForParticle(final Particle.ParticleState particleState) {
+        return particleState.hasReachedTheGoal() ? 1d : 0d;
     }
 }
