@@ -1,9 +1,9 @@
-package ar.edu.itba.ss.exit_room;
+package ar.edu.itba.ss.airplane_boarding;
 
-import ar.edu.itba.ss.exit_room.io.OctaveFileSaver;
-import ar.edu.itba.ss.exit_room.io.OvitoFileSaverImpl;
-import ar.edu.itba.ss.exit_room.io.ProgramArguments;
-import ar.edu.itba.ss.exit_room.models.Room;
+import ar.edu.itba.ss.airplane_boarding.io.OctaveFileSaver;
+import ar.edu.itba.ss.airplane_boarding.io.OvitoFileSaverImpl;
+import ar.edu.itba.ss.airplane_boarding.io.ProgramArguments;
+import ar.edu.itba.ss.airplane_boarding.models.Room;
 import ar.edu.itba.ss.g7.engine.io.DataSaver;
 import ar.edu.itba.ss.g7.engine.simulation.SimulationEngine;
 import org.slf4j.Logger;
@@ -20,12 +20,12 @@ import java.util.LinkedList;
  * Main class.
  */
 @SpringBootApplication
-public class ExitRoom implements CommandLineRunner, InitializingBean {
+public class AirplaneBoarding implements CommandLineRunner, InitializingBean {
 
     /**
      * The {@link Logger} object.
      */
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExitRoom.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AirplaneBoarding.class);
 
     /**
      * The {@link SimulationEngine}.
@@ -48,7 +48,7 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
      * @param programArguments The {@link ProgramArguments} for this simulation.
      */
     @Autowired
-    public ExitRoom(final ProgramArguments programArguments) {
+    public AirplaneBoarding(final ProgramArguments programArguments) {
         final double length = programArguments.getRoomProperties().getRoomLength();
         final double width = programArguments.getRoomProperties().getRoomWidth();
         final double door = programArguments.getRoomProperties().getRoomDoorSize();
@@ -80,7 +80,7 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
 
     @Override
     public void run(String... args) throws Exception {
-        LOGGER.info("Hello, ExitRoom!");
+        LOGGER.info("Hello, AirplaneBoarding!");
         // First, simulate
         simulate();
         // Then, save
@@ -115,6 +115,6 @@ public class ExitRoom implements CommandLineRunner, InitializingBean {
      * @param args The program arguments.
      */
     public static void main(String[] args) {
-        SpringApplication.run(ExitRoom.class, args);
+        SpringApplication.run(AirplaneBoarding.class, args);
     }
 }

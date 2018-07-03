@@ -1,6 +1,6 @@
-package ar.edu.itba.ss.exit_room.models;
+package ar.edu.itba.ss.airplane_boarding.models;
 
-import ar.edu.itba.ss.exit_room.utils.ComponentsProvider;
+import ar.edu.itba.ss.airplane_boarding.utils.ComponentsProvider;
 import ar.edu.itba.ss.g7.engine.models.System;
 import ar.edu.itba.ss.g7.engine.simulation.State;
 

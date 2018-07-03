@@ -1,6 +1,6 @@
-package ar.edu.itba.ss.exit_room.io;
+package ar.edu.itba.ss.airplane_boarding.io;
 
-import ar.edu.itba.ss.exit_room.models.Room;
+import ar.edu.itba.ss.airplane_boarding.models.Room;
 import ar.edu.itba.ss.g7.engine.io.TextFileSaver;
 
 import java.io.IOException;

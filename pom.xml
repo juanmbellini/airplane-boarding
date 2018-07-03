@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ar.edu.itba.ss</groupId>
-    <artifactId>exit-room</artifactId>
+    <artifactId>airplane-boarding</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -22,7 +22,7 @@
         <org.apache.commons.commons-math3.version>3.6.1</org.apache.commons.commons-math3.version>
 
         <!-- Execution properties -->
-        <bootstrapClass>ar.edu.itba.ss.exit_room.ExitRoom</bootstrapClass>
+        <bootstrapClass>ar.edu.itba.ss.airplane_boarding.AirplaneBoarding</bootstrapClass>
     </properties>
 
     <repositories>

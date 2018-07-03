@@ -1,8 +1,8 @@
-package ar.edu.itba.ss.exit_room.io;
+package ar.edu.itba.ss.airplane_boarding.io;
 
-import ar.edu.itba.ss.exit_room.models.Particle;
-import ar.edu.itba.ss.exit_room.models.Room;
-import ar.edu.itba.ss.exit_room.models.Wall;
+import ar.edu.itba.ss.airplane_boarding.models.Particle;
+import ar.edu.itba.ss.airplane_boarding.models.Room;
+import ar.edu.itba.ss.airplane_boarding.models.Wall;
 import ar.edu.itba.ss.g7.engine.io.OvitoFileSaver;
 
 import java.io.IOException;
@@ -66,11 +66,11 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
     }
 
     /**
-     * Saves a {@link ar.edu.itba.ss.exit_room.models.Particle.ParticleState}
+     * Saves a {@link ar.edu.itba.ss.airplane_boarding.models.Particle.ParticleState}
      * into the {@code data} {@link StringBuilder}.
      *
      * @param data     The {@link StringBuilder} that is collecting data.
-     * @param particle The {@link ar.edu.itba.ss.exit_room.models.Particle.ParticleState} with the data.
+     * @param particle The {@link ar.edu.itba.ss.airplane_boarding.models.Particle.ParticleState} with the data.
      */
     private void saveParticle(final StringBuilder data, final Particle.ParticleState particle) {
         data.append("")
@@ -93,11 +93,11 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
     }
 
     /**
-     * Saves a {@link ar.edu.itba.ss.exit_room.models.Wall.WallState}
+     * Saves a {@link ar.edu.itba.ss.airplane_boarding.models.Wall.WallState}
      * into the {@code data} {@link StringBuilder}.
      *
      * @param data The {@link StringBuilder} that is collecting data.
-     * @param wall The {@link ar.edu.itba.ss.exit_room.models.Wall.WallState} with the data.
+     * @param wall The {@link ar.edu.itba.ss.airplane_boarding.models.Wall.WallState} with the data.
      */
     private void saveWall(final StringBuilder data, final Wall.WallState wall) {
         data.append("")

@@ -1,4 +1,4 @@
-package ar.edu.itba.ss.exit_room.io;
+package ar.edu.itba.ss.airplane_boarding.io;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

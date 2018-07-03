@@ -1,8 +1,8 @@
-package ar.edu.itba.ss.exit_room.utils;
+package ar.edu.itba.ss.airplane_boarding.utils;
 
-import ar.edu.itba.ss.exit_room.models.Goal;
-import ar.edu.itba.ss.exit_room.models.Particle;
-import ar.edu.itba.ss.exit_room.models.Wall;
+import ar.edu.itba.ss.airplane_boarding.models.Goal;
+import ar.edu.itba.ss.airplane_boarding.models.Particle;
+import ar.edu.itba.ss.airplane_boarding.models.Wall;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.springframework.util.Assert;
 
@@ -129,7 +129,7 @@ public class ComponentsProvider {
 
 
     /**
-     * Creates the {@link List} of {@link Wall}s that defines a {@link ar.edu.itba.ss.exit_room.models.Room}.
+     * Creates the {@link List} of {@link Wall}s that defines a {@link ar.edu.itba.ss.airplane_boarding.models.Room}.
      *
      * @return The {@link List} of {@link Wall}s that define the room.
      * @apiNote The origin is in the middle of the door.

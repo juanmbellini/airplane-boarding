@@ -1,6 +1,6 @@
-# Exit-Room [![Build Status](https://travis-ci.org/juanmbellini/exit-room.svg?branch=master)](https://travis-ci.org/juanmbellini/exit-room)
+# Airplane-Boarding [![Build Status](https://travis-ci.org/juanmbellini/airplane-boarding.svg?branch=master)](https://travis-ci.org/juanmbellini/airplane-boarding)
 
-Sixth System Simulations project: An evacuation simulation
+Final System Simulations project: An airplane boarding simulation
 
 ## Getting started
 
@@ -11,12 +11,12 @@ These instructions will install the system in your local machine.
 1. Clone the repository, or download source code
 
 	```
-	$ git clone https://github.com/juanmbellini/exit-room.git
+	$ git clone https://github.com/juanmbellini/airplane-boarding.git
 	```
 	or
 
 	```
-	$ wget https://github.com/juanmbellini/exit-room/archive/master.zip
+	$ wget https://github.com/juanmbellini/airplane-boarding/archive/master.zip
 	```
 
 2. Install Maven, if you haven't yet
@@ -67,6 +67,9 @@ You can run the simulation with the following command:
 ```
 $ java -jar <path-to-jar> [arguments]
 ```
+
+## Acknowledgement
+This is a fork of the [Exit-Room](https://github.com/juanmbellini/exit-room) project.
 
 ## Authors
 

@@ -1,4 +1,4 @@
-package ar.edu.itba.ss.exit_room.models;
+package ar.edu.itba.ss.airplane_boarding.models;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 

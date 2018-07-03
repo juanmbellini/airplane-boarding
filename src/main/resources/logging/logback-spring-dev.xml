@@ -7,7 +7,7 @@
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
-    <logger name="ar.edu.itba.ss.exit_room" level="DEBUG" additivity="false">
+    <logger name="ar.edu.itba.ss.airplane_boarding" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
     </logger>
 </configuration>
