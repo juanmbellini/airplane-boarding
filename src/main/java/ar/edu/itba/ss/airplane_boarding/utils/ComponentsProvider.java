@@ -10,8 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -191,9 +191,21 @@ public class ComponentsProvider {
         final List<Goal> goals = new LinkedList<>();
         switch (boardingStrategy) {
             case BACK_TO_FRONT_BY_ROW: {
+                for (int row = amountOfSeatRows - 1; row >= 0; row--) {
+                    for (int column = amountOfSeatsPerSide - 1; column >= 0; column--) {
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.RIGHT));
+                    }
+                }
                 break;
             }
             case FRONT_TO_BACK_BY_ROW: {
+                for (int row = 0; row < amountOfSeatRows; row++) {
+                    for (int column = amountOfSeatsPerSide - 1; column >= 0; column--) {
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.RIGHT));
+                    }
+                }
                 break;
             }
             case OUTSIDE_IN_BY_COLUMN: {
@@ -206,36 +218,35 @@ public class ComponentsProvider {
                 break;
             }
             case INSIDE_OUT_BY_COLUMN: {
-                break;
-            }
-            case BLOCK_BOARDING: {
-                break;
-            }
-            case REVERSE_PYRAMID: {
-                break;
-            }
-            case ROTATING_ZONE: {
+                for (int column = 0; column < amountOfSeatsPerSide; column++) {
+                    for (int row = amountOfSeatRows - 1; row >= 0; row--) {
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.RIGHT));
+                    }
+                }
                 break;
             }
             case RANDOM: {
+                for (int column = 0; column < amountOfSeatsPerSide; column++) {
+                    for (int row = 0; row < amountOfSeatRows; row++) {
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.RIGHT));
+                    }
+                }
+                Collections.shuffle(goals);
                 break;
             }
             default:
                 throw new RuntimeException("This should not happen");
         }
 
-        final double startingX = centralHallWidth / 2 + amountOfSeatsPerSide * seatWidth + minRadius;
-        for (int i = 0; i < goals.size(); i++) {
-            final Goal goal = goals.get(i);
-            final Vector2D initialPosition = new Vector2D(startingX + 2 * minRadius * i, minRadius);
-            new Particle(minRadius, initialPosition, Vector2D.ZERO, goal, minRadius, maxRadius, tao, beta, maxVelocityModule);
-        }
-
+        final double startingX = centralHallWidth / 2 + amountOfSeatsPerSide * seatWidth + maxRadius;
         return IntStream.range(0, goals.size())
                 .mapToObj(idx -> {
                     final Goal goal = goals.get(idx);
-                    final Vector2D initialPosition = new Vector2D(startingX + 4 * minRadius * idx, minRadius);
-                    return new Particle(minRadius, initialPosition, Vector2D.ZERO, goal,
+                    // Must give a lot of separation in order to avoid congestion
+                    final Vector2D initialPosition = new Vector2D(startingX + 10 * maxRadius * idx, maxRadius);
+                    return new Particle(maxRadius, initialPosition, Vector2D.ZERO, goal,
                             minRadius, maxRadius, tao, beta, maxVelocityModule);
                 })
                 .collect(Collectors.toList());

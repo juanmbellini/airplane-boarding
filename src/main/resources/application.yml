@@ -10,10 +10,10 @@ custom:
         airplane:
             rows: 27
             columns: 3
-            central-hall-width: 1.0
+            central-hall-width: 0.7
             front-hall-length: 2
             seat-width: 0.5
-            seat-separation: 0.5
+            seat-separation: 0.7
             door-length: 1.0
 
 

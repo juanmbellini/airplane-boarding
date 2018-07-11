@@ -128,7 +128,7 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
      * @return {@code true} if the simulation should stop, or {@code false} otherwise.
      */
     public boolean shouldStop() {
-        return actualTime > 10;
+        return actualTime > 120;
 //        return true; // TODO: set a stop condition
     }
 

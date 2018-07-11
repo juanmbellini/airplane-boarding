@@ -193,22 +193,25 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
             this.newRadius = auxRadius > maxRadius ? maxRadius : auxRadius;
             // Velocity
             final double speed = maxVelocityModule * Math.pow((newRadius - minRadius) / (maxRadius - minRadius), beta);
-//            final Vector2D goalDirection = goal.getCenter().subtract(this.position).normalize();
-            final Vector2D goalDirection = goal.getTarget()
+            this.newVelocity = goal.getTarget()
                     .map(v -> v.subtract(this.position))
+                    .filter(v -> v.getNorm() != 0) // A zero might happen if the particle already reached the goal
                     .map(Vector2D::normalize)
+                    .map(v -> v.scalarMultiply(speed))
                     .orElse(Vector2D.ZERO); // If there is no more targets, just set the direction to zero
-            this.newVelocity = goalDirection.scalarMultiply(speed);
+//            this.newVelocity = goalDirection.scalarMultiply(speed);
         } else {
             // Particle is in contact with those obstacles in the list (i.e it overlaps)
             // Radius
             this.newRadius = minRadius;
             // Velocity
-            final Vector2D escapeDirection = inContact.stream()
+            this.newVelocity = inContact.stream()
                     .map(obstacle -> obstacle.getEscapeDirection(this))
-                    .reduce(Vector2D.ZERO, Vector2D::add)
-                    .normalize();
-            this.newVelocity = escapeDirection.scalarMultiply(maxVelocityModule); // Escape velocity is the same as max
+                    .reduce(Vector2D::add)
+                    .filter(v -> v.getNorm() != 0) // A zero might happen if all the escape directions cancel themselves
+                    .map(Vector2D::normalize)
+                    .map(v -> v.scalarMultiply(maxVelocityModule)) // Escape velocity is the same as max
+                    .orElse(Vector2D.ZERO);
         }
         this.canMove = true;
     }
@@ -224,18 +227,7 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         this.radius = newRadius;
         this.velocity = newVelocity;
         this.position = position.add(getVelocity().scalarMultiply(timeStep));
-
-//        // TODO: find a way to validate that the goal is reached
-//        if (!reachedGoal /*&& goal.reachedBy(this)*/) {
-//            // Only assign a new one if the original one is reached and the particle is moving towards it
-//            reachedGoal = true; // TODO: is this necessary now?
-////            this.goal = newGoalSupplier.get(); // TODO: this is not used anymore, just notify the goal that is reached
-//            this.goal.notifyArrival();
-//        }
-        // TODO: what if asked to the goal as it was before?
-        if (goal.getTarget().filter(this::reachedTarget).isPresent()) {
-            this.goal.notifyArrival();
-        }
+        this.goal.notifyMove(this);
 
         this.canMove = false;
         this.newRadius = null;
@@ -283,10 +275,6 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     // ================================================================================================================
     // Helpers
     // ================================================================================================================
-
-    private boolean reachedTarget(final Vector2D target) {
-        return this.position.distance(target) < minRadius;
-    }
 
     /**
      * Validates the given {@code radius} value.
