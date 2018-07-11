@@ -1,19 +1,24 @@
 package ar.edu.itba.ss.airplane_boarding.utils;
 
+import ar.edu.itba.ss.airplane_boarding.models.Airplane;
+import ar.edu.itba.ss.airplane_boarding.models.BoardingStrategy;
 import ar.edu.itba.ss.airplane_boarding.models.Goal;
 import ar.edu.itba.ss.airplane_boarding.models.Particle;
-import ar.edu.itba.ss.airplane_boarding.models.Wall;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Class in charge of initializing the system.
  */
+@Component
 public class ComponentsProvider {
 
     /**
@@ -24,33 +29,59 @@ public class ComponentsProvider {
 
 
     // ================================================================================================================
-    // Room stuff
+    // Airplane stuff
     // ================================================================================================================
 
     /**
-     * The 'x' component that is minimum.
+     * Indicates how many rows of seats the built {@link Airplane} will have.
      */
-    private final double xMin;
+    private final int amountOfSeatRows;
 
     /**
-     * The 'x' component that is maximum.
+     * Indicates how many seats there between the central hall and the airplane side wall for each row.
      */
-    private final double xMax;
+    private final int amountOfSeatsPerSide;
 
     /**
-     * The 'y' component that is minimum.
+     * The width of the central hall.
      */
-    private final double yMin;
+    private final double centralHallWidth;
 
     /**
-     * The 'y' component that is maximum.
+     * The length of the front hall (i.e space between the first seat and the front "wall").
      */
-    private final double yMax;
+    private final double frontHallLength;
 
     /**
-     * Half of the length of a door.
+     * The width each seat has.
      */
-    private final double halfRoomDoorLength;
+    private final double seatWidth;
+
+    /**
+     * The separation between each row of seats.
+     */
+    private final double seatSeparation;
+
+    /**
+     * The width of the airplane door.
+     */
+    private final double doorLength;
+
+    /**
+     * The airplane to be boarded.
+     */
+    private final Airplane airplane;
+
+
+    // ================================================================================================================
+    // Boarding stuff
+    // ================================================================================================================
+
+    /**
+     * The {@link BoardingStrategy} to be used (used to initialize {@link Particle}s according to it).
+     */
+    private final BoardingStrategy boardingStrategy;
+
 
     // ================================================================================================================
     // Particles stuff
@@ -81,16 +112,18 @@ public class ComponentsProvider {
     private final double maxVelocityModule;
 
     /**
-     * The max. amount of {@link Particle}s to be created.
-     */
-    private final int maxAmountOfParticles;
-
-    /**
      * Constructor.
      *
-     * @param roomLength           The room's length.
-     * @param roomWidth            The room's width.
-     * @param roomDoorLength       The door's length.
+     * @param amountOfSeatRows     Indicates how many rows of seats the built {@link Airplane} will have.
+     * @param amountOfSeatsPerSide Indicates how many seats there
+     *                             between the central hall and the airplane side wall for each row.
+     * @param centralHallWidth     The width of the central hall.
+     * @param frontHallLength      The length of the front hall (i.e space between the first seat and the front "wall").
+     * @param seatWidth            The width each seat has.
+     * @param seatSeparation       The separation between each row of seats.
+     * @param doorLength           The length of the airplane door.
+     * @param boardingStrategy     The {@link BoardingStrategy} to be used
+     *                             (used to initialize {@link Particle}s according to it).
      * @param minRadius            The min. radius of the {@link Particle}s to be created
      *                             (which will be the starting radius).
      * @param maxRadius            The max. amount of {@link Particle}s to be created.
@@ -98,51 +131,55 @@ public class ComponentsProvider {
      * @param beta                 Experimental constant that defines the linearity
      *                             between speed changes and blocks avoidance for a {@link Particle}.
      * @param maxVelocityModule    The max. speed a {@link Particle} can reach.
-     * @param maxAmountOfParticles The max. amount of particles.
      */
-    public ComponentsProvider(final double roomLength, final double roomWidth, final double roomDoorLength,
-                              final double minRadius, double maxRadius,
-                              double tao, double beta, double maxVelocityModule,
-                              final int maxAmountOfParticles) {
-        Assert.isTrue(roomLength > 0 && roomWidth > 0 && roomDoorLength > 0,
-                "The dimensions of the room must be positive");
-        Assert.isTrue(roomWidth > roomDoorLength,
-                "The door length must be greater than the width of the room");
+    @Autowired
+    public ComponentsProvider(@Value("${custom.system.airplane.rows}") final int amountOfSeatRows,
+                              @Value("${custom.system.airplane.columns}") final int amountOfSeatsPerSide,
+                              @Value("${custom.system.airplane.central-hall-width}") final double centralHallWidth,
+                              @Value("${custom.system.airplane.front-hall-length}") final double frontHallLength,
+                              @Value("${custom.system.airplane.seat-width}") final double seatWidth,
+                              @Value("${custom.system.airplane.seat-separation}") final double seatSeparation,
+                              @Value("${custom.system.airplane.door-length}") final double doorLength,
+                              @Value("${custom.simulation.boarding-strategy}") final BoardingStrategy boardingStrategy,
+                              @Value("${custom.system.particle.min-radius}") final double minRadius,
+                              @Value("${custom.system.particle.max-radius}") final double maxRadius,
+                              @Value("${custom.system.particle.tao}") final double tao,
+                              @Value("${custom.system.particle.beta}") final double beta,
+                              @Value("${custom.system.particle.max-speed}") final double maxVelocityModule) {
+        Assert.notNull(boardingStrategy, "The boarding strategy must not be null");
+        // Airplane and Particle stuff are validated in their respective creator methods.
 
-        // For particles only validate amount of them,
-        // as the rest of the arguments are being validated already by the Particle class
-        Assert.isTrue(maxAmountOfParticles > 0, "The max. amount of particles must be positive");
+        // Airplane stuff
+        this.airplane = Airplane.buildFromSpecifications(amountOfSeatRows, amountOfSeatsPerSide,
+                centralHallWidth, frontHallLength, seatWidth, seatSeparation, doorLength);
+        this.amountOfSeatRows = amountOfSeatRows;
+        this.amountOfSeatsPerSide = amountOfSeatsPerSide;
+        this.centralHallWidth = centralHallWidth;
+        this.frontHallLength = frontHallLength;
+        this.seatWidth = seatWidth;
+        this.seatSeparation = seatSeparation;
+        this.doorLength = doorLength;
 
-        // Set the origin in the middle of the door
-        this.xMin = -roomWidth / 2;
-        this.xMax = roomWidth / 2;
-        this.yMin = 0;
-        this.yMax = roomLength;
-        this.halfRoomDoorLength = roomDoorLength / 2;
+        // Boarding stuff
+        this.boardingStrategy = boardingStrategy;
+
+        // Particle stuff
         this.minRadius = minRadius;
         this.maxRadius = maxRadius;
         this.tao = tao;
         this.beta = beta;
         this.maxVelocityModule = maxVelocityModule;
-        this.maxAmountOfParticles = maxAmountOfParticles;
-    }
 
+    }
 
     /**
-     * Creates the {@link List} of {@link Wall}s that defines a {@link ar.edu.itba.ss.airplane_boarding.models.Room}.
+     * Provides the {@link Airplane} to be boarded.
      *
-     * @return The {@link List} of {@link Wall}s that define the room.
-     * @apiNote The origin is in the middle of the door.
+     * @return The {@link Airplane} to be boarded.
      */
-    public List<Wall> buildWalls() {
-        final Wall leftWall = new Wall(new Vector2D(xMin, yMin), new Vector2D(xMin, yMax));
-        final Wall rightWall = new Wall(new Vector2D(xMax, yMin), new Vector2D(xMax, yMax));
-        final Wall backWall = new Wall(new Vector2D(xMin, yMax), new Vector2D(xMax, yMax));
-        final Wall frontLeftWall = new Wall(new Vector2D(xMin, yMin), new Vector2D(-halfRoomDoorLength, yMin));
-        final Wall frontRightWall = new Wall(new Vector2D(halfRoomDoorLength, yMin), new Vector2D(xMax, yMin));
-        return Arrays.asList(leftWall, rightWall, backWall, frontLeftWall, frontRightWall);
+    public Airplane getAirplane() {
+        return airplane;
     }
-
 
     /**
      * Creates the {@link List} of {@link Particle}.
@@ -150,46 +187,62 @@ public class ComponentsProvider {
      * @return The {@link List} of {@link Particle}s.
      */
     public List<Particle> createParticles() {
-        final Goal goal = buildGoalForParticles();
-        final List<Particle> particles = new LinkedList<>();
-        int tries = 0; // Will count the amount of consecutive failed tries of adding randomly a particle into the list.
-        while (tries < MAX_AMOUNT_OF_TRIES && particles.size() < maxAmountOfParticles) {
-            final double xPosition = (xMin + minRadius)
-                    + new Random().nextDouble() * ((xMax - minRadius) - (xMin + minRadius));
-            final double yPosition = (yMin + minRadius)
-                    + new Random().nextDouble() * ((yMax - minRadius) - (yMin + minRadius));
-            final Vector2D position = new Vector2D(xPosition, yPosition);
-            if (particles.stream().noneMatch(p -> p.doOverlap(position, minRadius))) {
-                particles.add(new Particle(minRadius, position, Vector2D.ZERO,
-                        goal, this::buildNewRandomOutsideGoal, minRadius, maxRadius, tao, beta, maxVelocityModule));
-                tries = 0; // When a particle is added, the counter of consecutive failed tries must be set to zero.
-            } else {
-                tries++;
+        // TODO: particles positions should be initialized according to a boarding strategy? or random? on a queue?
+        final List<Goal> goals = new LinkedList<>();
+        switch (boardingStrategy) {
+            case BACK_TO_FRONT_BY_ROW: {
+                break;
             }
+            case FRONT_TO_BACK_BY_ROW: {
+                break;
+            }
+            case OUTSIDE_IN_BY_COLUMN: {
+                for (int column = amountOfSeatsPerSide - 1; column >= 0; column--) {
+                    for (int row = amountOfSeatRows - 1; row >= 0; row--) {
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
+                        goals.add(buildGoal(row, column, Goal.AirplaneSide.RIGHT));
+                    }
+                }
+                break;
+            }
+            case INSIDE_OUT_BY_COLUMN: {
+                break;
+            }
+            case BLOCK_BOARDING: {
+                break;
+            }
+            case REVERSE_PYRAMID: {
+                break;
+            }
+            case ROTATING_ZONE: {
+                break;
+            }
+            case RANDOM: {
+                break;
+            }
+            default:
+                throw new RuntimeException("This should not happen");
         }
-        return particles;
+
+        final double startingX = centralHallWidth / 2 + amountOfSeatsPerSide * seatWidth + minRadius;
+        for (int i = 0; i < goals.size(); i++) {
+            final Goal goal = goals.get(i);
+            final Vector2D initialPosition = new Vector2D(startingX + 2 * minRadius * i, minRadius);
+            new Particle(minRadius, initialPosition, Vector2D.ZERO, goal, minRadius, maxRadius, tao, beta, maxVelocityModule);
+        }
+
+        return IntStream.range(0, goals.size())
+                .mapToObj(idx -> {
+                    final Goal goal = goals.get(idx);
+                    final Vector2D initialPosition = new Vector2D(startingX + 4 * minRadius * idx, minRadius);
+                    return new Particle(minRadius, initialPosition, Vector2D.ZERO, goal,
+                            minRadius, maxRadius, tao, beta, maxVelocityModule);
+                })
+                .collect(Collectors.toList());
     }
 
-    /**
-     * Builds a {@link Goal} for the {@link Particle}s that are going to be created by this {@link ComponentsProvider}
-     * (i.e having into account the room - or walls - that are built).
-     *
-     * @return The built {@link Goal}.
-     */
-    private Goal buildGoalForParticles() {
-        final Vector2D center = new Vector2D(0, 0);
-        final double margin = halfRoomDoorLength - minRadius;
-        return new Goal(center, margin, 0, null, null, 0d, null);
-    }
-
-    /**
-     * Builds a new random {@link Goal} that is outside the room.
-     *
-     * @return a new random {@link Goal}.
-     */
-    private Goal buildNewRandomOutsideGoal() {
-        final double xCenter = xMin + new Random().nextDouble() * (xMax - xMin);
-        final double yCenter = -yMax / 2 + new Random().nextDouble() * (-yMax / 4 - (-yMax / 2));
-        return new Goal(new Vector2D(xCenter, yCenter), 0d, 0d, null, null, null, null);
+    private Goal buildGoal(final int targetRow, final int targetColumn, final Goal.AirplaneSide targetSide) {
+        return new Goal(frontHallLength, centralHallWidth, doorLength, seatWidth, seatSeparation,
+                targetRow, targetColumn, targetSide, minRadius);
     }
 }

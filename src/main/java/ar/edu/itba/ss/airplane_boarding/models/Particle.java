@@ -6,7 +6,6 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.springframework.util.Assert;
 
 import java.util.List;
-import java.util.function.Supplier;
 
 
 /**
@@ -42,18 +41,12 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
      * The {@link Goal} to which the particle must reach.
      */
     private Goal goal;
-
-    /**
-     * A {@link Supplier} of {@link Goal} to be used to place a get a new one
-     * once this particle has reached the original one.
-     */
-    private final Supplier<Goal> newGoalSupplier;
-
-    /**
-     * Flag indicating whether this particle reached the goal
-     * (i.e will be used to calculate a new goal in order to go away from the initial one).
-     */
-    private boolean reachedGoal;
+//
+//    /**
+//     * Flag indicating whether this particle reached the goal
+//     * (i.e will be used to calculate a new goal in order to go away from the initial one).
+//     */
+//    private boolean reachedGoal;
 
     /**
      * Auxiliary variable that holds the new radius
@@ -109,8 +102,6 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
      * @param position          The particle's position (represented as a 2D vector).
      * @param velocity          The particle's velocity (represented as a 2D vector).
      * @param goal              The {@link Goal} to which the particle must reach.
-     * @param newGoalSupplier   A {@link Supplier} of {@link Goal} to be used to place a get a new one
-     *                          once this particle has reached the original one.
      * @param minRadius         The min. radius this particle can have.
      * @param maxRadius         The max. radius this particle can have.
      * @param tao               Mean time a particle needs to get to the minimum radius.
@@ -119,7 +110,7 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
      * @param maxVelocityModule The max. speed a particle can reach.
      */
     public Particle(final double radius, final Vector2D position, final Vector2D velocity,
-                    final Goal goal, final Supplier<Goal> newGoalSupplier,
+                    final Goal goal,
                     final double minRadius, final double maxRadius,
                     final double tao, final double beta, final double maxVelocityModule) {
 
@@ -128,7 +119,6 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         validateVector(position);
         validateVector(velocity);
         validateGoal(goal);
-        validateNewGoalSupplier(newGoalSupplier);
         validateTao(tao);
         validateBeta(beta);
         validateMaxVelocityModule(maxVelocityModule);
@@ -138,13 +128,12 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         this.position = position;
         this.velocity = velocity;
         this.goal = goal;
-        this.newGoalSupplier = newGoalSupplier;
         this.minRadius = minRadius;
         this.maxRadius = maxRadius;
         this.tao = tao;
         this.beta = beta;
         this.maxVelocityModule = maxVelocityModule;
-        this.reachedGoal = false;
+//        this.reachedGoal = false;
         this.canMove = false;
     }
 
@@ -180,7 +169,8 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
      * @return {@code true} if the particle reached the goal, or {@code false} otherwise.
      */
     public boolean hasReachedTheGoal() {
-        return reachedGoal;
+        return false; // TODO: implement
+//        return reachedGoal;
     }
 
 
@@ -203,7 +193,11 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
             this.newRadius = auxRadius > maxRadius ? maxRadius : auxRadius;
             // Velocity
             final double speed = maxVelocityModule * Math.pow((newRadius - minRadius) / (maxRadius - minRadius), beta);
-            final Vector2D goalDirection = goal.getCenter().subtract(this.position).normalize();
+//            final Vector2D goalDirection = goal.getCenter().subtract(this.position).normalize();
+            final Vector2D goalDirection = goal.getTarget()
+                    .map(v -> v.subtract(this.position))
+                    .map(Vector2D::normalize)
+                    .orElse(Vector2D.ZERO); // If there is no more targets, just set the direction to zero
             this.newVelocity = goalDirection.scalarMultiply(speed);
         } else {
             // Particle is in contact with those obstacles in the list (i.e it overlaps)
@@ -231,10 +225,16 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         this.velocity = newVelocity;
         this.position = position.add(getVelocity().scalarMultiply(timeStep));
 
-        if (!reachedGoal && goal.reachedBy(this)) {
-            // Only assign a new one if the original one is reached and the particle is moving towards it
-            reachedGoal = true;
-            this.goal = newGoalSupplier.get();
+//        // TODO: find a way to validate that the goal is reached
+//        if (!reachedGoal /*&& goal.reachedBy(this)*/) {
+//            // Only assign a new one if the original one is reached and the particle is moving towards it
+//            reachedGoal = true; // TODO: is this necessary now?
+////            this.goal = newGoalSupplier.get(); // TODO: this is not used anymore, just notify the goal that is reached
+//            this.goal.notifyArrival();
+//        }
+        // TODO: what if asked to the goal as it was before?
+        if (goal.getTarget().filter(this::reachedTarget).isPresent()) {
+            this.goal.notifyArrival();
         }
 
         this.canMove = false;
@@ -263,6 +263,11 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     // Others
     // ================================================================================================================
 
+    @Override
+    public ParticleState outputState() {
+        return new ParticleState(this);
+    }
+
     /**
      * Checks if another particle can be created with the given {@code position} and {@code radius} arguments.
      *
@@ -272,6 +277,15 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
      */
     public boolean doOverlap(final Vector2D position, final double radius) {
         return this.radius + radius - this.position.distance(position) > 0;
+    }
+
+
+    // ================================================================================================================
+    // Helpers
+    // ================================================================================================================
+
+    private boolean reachedTarget(final Vector2D target) {
+        return this.position.distance(target) < minRadius;
     }
 
     /**
@@ -308,16 +322,6 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     }
 
     /**
-     * Validates the given {@code newGoalSupplier}.
-     *
-     * @param newGoalSupplier The {@link Supplier} of {@link Goal} to be validated.
-     * @throws IllegalArgumentException In case the given {@code newGoalSupplier} is not valid (i.e is {@code null}).
-     */
-    private static void validateNewGoalSupplier(final Supplier<Goal> newGoalSupplier) throws IllegalArgumentException {
-        Assert.notNull(newGoalSupplier, "The new goal supplier must not be null");
-    }
-
-    /**
      * Validates the given {@code tao} value.
      *
      * @param tao The tao value to be validated.
@@ -346,11 +350,6 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     private static void validateMaxVelocityModule(final double maxVelocityModule) throws IllegalArgumentException {
         Assert.isTrue(maxVelocityModule > 0, "The max. velocity module must be positive.");
         // TODO: more validations?
-    }
-
-    @Override
-    public ParticleState outputState() {
-        return new ParticleState(this);
     }
 
 

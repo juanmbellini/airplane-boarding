@@ -1,17 +1,21 @@
 package ar.edu.itba.ss.airplane_boarding.io;
 
+import ar.edu.itba.ss.airplane_boarding.models.BoardingScene;
 import ar.edu.itba.ss.airplane_boarding.models.Particle;
-import ar.edu.itba.ss.airplane_boarding.models.Room;
 import ar.edu.itba.ss.airplane_boarding.models.Wall;
 import ar.edu.itba.ss.g7.engine.io.OvitoFileSaver;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.Writer;
 
 /**
- * {@link OvitoFileSaver} for the {@link Room}.
+ * {@link OvitoFileSaver} for the {@link BoardingScene}.
  */
-public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
+@Component("ovitoFileSaver")
+public class OvitoFileSaverImpl extends OvitoFileSaver<BoardingScene.BoardingSceneState> {
 
     /**
      * Min. particle radius (used to set colors).
@@ -35,7 +39,10 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
      * @param particleMinRadius Min. particle radius (used to set colors).
      * @param particleMaxRadius Max. particle radius (used to set colors).
      */
-    public OvitoFileSaverImpl(final String filePath, final double particleMinRadius, final double particleMaxRadius) {
+    @Autowired
+    public OvitoFileSaverImpl(@Value("${custom.output.ovito}") final String filePath,
+                              @Value("${custom.system.particle.min-radius}") final double particleMinRadius,
+                              @Value("${custom.system.particle.max-radius}") final double particleMaxRadius) {
         super(filePath);
         this.particleMinRadius = particleMinRadius;
         this.particleMaxRadius = particleMaxRadius;
@@ -43,21 +50,27 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
     }
 
     @Override
-    public void saveState(final Writer writer, final Room.RoomState roomState, final int frame) throws IOException {
+    public void saveState(final Writer writer,
+                          final BoardingScene.BoardingSceneState boardingSceneState,
+                          final int frame)
+            throws IOException {
 
         final StringBuilder data = new StringBuilder();
         // First, headers
-        data.append(roomState.getParticleStates().size() + 2 * roomState.getWallStates().size())
+        final int amount = boardingSceneState.getParticleStates().size()
+                + 2 * boardingSceneState.getAirplaneState().getAirplaneObstacles().size();
+        data.append(amount)
                 .append("\n")
                 .append(frame)
                 .append("\n");
         // Save particles
-        for (Particle.ParticleState particle : roomState.getParticleStates()) {
-            saveParticle(data, particle);
+        int identifier = 0;
+        for (Particle.ParticleState particle : boardingSceneState.getParticleStates()) {
+            saveParticle(data, particle, identifier++);
         }
-        // Save walls
-        for (Wall.WallState wall : roomState.getWallStates()) {
-            saveWall(data, wall);
+        // Save airplane obstacles
+        for (Wall.WallState wall : boardingSceneState.getAirplaneState().getAirplaneObstacles()) {
+            saveWall(data, wall, identifier++);
         }
 
         // Append data into the Writer
@@ -69,10 +82,11 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
      * Saves a {@link ar.edu.itba.ss.airplane_boarding.models.Particle.ParticleState}
      * into the {@code data} {@link StringBuilder}.
      *
-     * @param data     The {@link StringBuilder} that is collecting data.
-     * @param particle The {@link ar.edu.itba.ss.airplane_boarding.models.Particle.ParticleState} with the data.
+     * @param data       The {@link StringBuilder} that is collecting data.
+     * @param particle   The {@link ar.edu.itba.ss.airplane_boarding.models.Particle.ParticleState} with the data.
+     * @param identifier An integer id used to identify each particle
      */
-    private void saveParticle(final StringBuilder data, final Particle.ParticleState particle) {
+    private void saveParticle(final StringBuilder data, final Particle.ParticleState particle, final int identifier) {
         data.append("")
                 .append(particle.getPosition().getX())
                 .append(" ")
@@ -82,13 +96,15 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
                 .append(" ")
                 .append(particle.getVelocity().getY())
                 .append(" ")
-                .append(particleMinRadius)
+                .append(particle.getRadius())
                 .append(" ")
                 .append(calculateRedForParticle(particle)) // Red
                 .append(" ")
                 .append(calculateGreenForParticle(particle)) // Green
                 .append(" ")
                 .append(calculateBlueForParticle(particle)) // Blue
+                .append(" ")
+                .append(identifier)
                 .append("\n");
     }
 
@@ -96,10 +112,12 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
      * Saves a {@link ar.edu.itba.ss.airplane_boarding.models.Wall.WallState}
      * into the {@code data} {@link StringBuilder}.
      *
-     * @param data The {@link StringBuilder} that is collecting data.
-     * @param wall The {@link ar.edu.itba.ss.airplane_boarding.models.Wall.WallState} with the data.
+     * @param data       The {@link StringBuilder} that is collecting data.
+     * @param wall       The {@link ar.edu.itba.ss.airplane_boarding.models.Wall.WallState} with the data.
+     * @param identifier An integer id used to identify each particle
+     *                   (this can be used to make sure that two outputted particles belong to the same wall)
      */
-    private void saveWall(final StringBuilder data, final Wall.WallState wall) {
+    private void saveWall(final StringBuilder data, final Wall.WallState wall, final int identifier) {
         data.append("")
                 .append(wall.getInitialPoint().getX())
                 .append(" ")
@@ -116,6 +134,8 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
                 .append(1) // Green
                 .append(" ")
                 .append(1) // Blue
+                .append(" ")
+                .append(identifier)
                 .append("\n")
                 .append(wall.getFinalPoint().getX())
                 .append(" ")
@@ -132,6 +152,8 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<Room.RoomState> {
                 .append(1) // Green
                 .append(" ")
                 .append(1) // Blue
+                .append(" ")
+                .append(identifier)
                 .append("\n");
     }
 

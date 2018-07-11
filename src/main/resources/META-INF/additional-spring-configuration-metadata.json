@@ -1,24 +1,39 @@
 {
   "properties": [
     {
-      "name": "custom.system.room.L",
-      "type": "java.lang.Double",
-      "description": "The room's length."
-    },
-    {
-      "name": "custom.system.room.W",
-      "type": "java.lang.Double",
-      "description": "The room's width."
-    },
-    {
-      "name": "custom.system.room.D",
-      "type": "java.lang.Double",
-      "description": "The room's hole size."
-    },
-    {
-      "name": "custom.system.particle.max-amount",
+      "name": "custom.system.airplane.rows",
       "type": "java.lang.Integer",
-      "description": "The max. amount of particles."
+      "description": "The amount of seat rows."
+    },
+    {
+      "name": "custom.system.airplane.columns",
+      "type": "java.lang.Integer",
+      "description": "The amount of seat columns in each side of the airplane."
+    },
+    {
+      "name": "custom.system.airplane.central-hall-width",
+      "type": "java.lang.Double",
+      "description": "The width of the central hall."
+    },
+    {
+      "name": "custom.system.airplane.front-hall-length",
+      "type": "java.lang.Double",
+      "description": "The length of the front hall."
+    },
+    {
+      "name": "custom.system.airplane.seat-width",
+      "type": "java.lang.Double",
+      "description": "The width of each seat."
+    },
+    {
+      "name": "custom.system.airplane.seat-separation",
+      "type": "java.lang.Double",
+      "description": "The space between each row of seats."
+    },
+    {
+      "name": "custom.system.airplane.door-length",
+      "type": "java.lang.Double",
+      "description": "The length of the airplane door."
     },
     {
       "name": "custom.system.particle.min-radius",
@@ -46,14 +61,14 @@
       "description": "The max. speed a particle can reach."
     },
     {
-      "name": "custom.simulation.duration",
-      "type": "java.lang.Double",
-      "description": "The Simulation's duration, in seconds."
-    },
-    {
       "name": "custom.simulation.time-step",
       "type": "java.lang.Double",
       "description": "The Simulation's time step, in seconds."
+    },
+    {
+      "name": "custom.simulation.boarding-strategy",
+      "type": "ar.edu.itba.ss.airplane_boarding.models.BoardingStrategy",
+      "description": "The strategy used to board the passengers."
     },
     {
       "name": "custom.output.ovito",

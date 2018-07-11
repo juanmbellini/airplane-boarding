@@ -3,25 +3,30 @@ package ar.edu.itba.ss.airplane_boarding.models;
 import ar.edu.itba.ss.airplane_boarding.utils.ComponentsProvider;
 import ar.edu.itba.ss.g7.engine.models.System;
 import ar.edu.itba.ss.g7.engine.simulation.State;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Represents the room to be simulated (i.e the {@link System} to be simulated).
+ * Represents the boarding scene (i.e the {@link System} to be simulated).
  */
-public class Room implements System<Room.RoomState> {
+@Component
+public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
 
     // ================================================================================================================
-    // Walls and particles
+    // Airplane and particles
     // ================================================================================================================
 
     /**
-     * The {@link Wall}s in this room.
+     * The {@link Airplane} to be boarded.
      */
-    private final List<Wall> walls;
+    private final Airplane airplane;
 
     /**
      * The {@link Particle}s in this room.
@@ -33,33 +38,15 @@ public class Room implements System<Room.RoomState> {
     // ================================================================================================================
 
     /**
-     * The time step.
+     * The time step (used to update in time the system).
      */
     private final double timeStep;
-
-    /**
-     * The simulation duration.
-     */
-    private final double duration;
 
     /**
      * The actual time.
      */
     private double actualTime;
 
-    // ================================================================================================================
-    // Physics
-    // ================================================================================================================
-
-    /**
-     * The total amount of {@link Particle}s that have left the room.
-     */
-    private long outsideParticles;
-
-    /**
-     * The actual amount of new {@link Particle}s outside the room.
-     */
-    private long newOutside;
 
     // ================================================================================================================
     // Others
@@ -83,36 +70,23 @@ public class Room implements System<Room.RoomState> {
     /**
      * Constructor.
      *
-     * @param length               The room's width.
-     * @param width                The room's length.
-     * @param door                 The room's door size.
-     * @param maxAmountOfParticles The max. amount of particles.
-     * @param minRadius            The min. radius of a {@link Particle}.
-     * @param maxRadius            The max. radius of a {@link Particle}.
-     * @param tao                  Mean time a {@link Particle} needs to get to the minimum radius.
-     * @param beta                 Experimental constant that defines the linearity
-     *                             between speed changes and blocks avoidance for a {@link Particle}.
-     * @param maxVelocityModule    The max. speed a {@link Particle} can reach.
-     * @param timeStep             The time step.
-     * @param duration             The amount of time the simulation will last.
+     * @param componentsProvider The {@link ComponentsProvider} that provides all the stuff to perform the simulation.
+     * @param timeStep           The time step (used to update in time the system).
      */
-    public Room(final double length, final double width, final double door,
-                final double minRadius, final double maxRadius, double tao, double beta, double maxVelocityModule,
-                final int maxAmountOfParticles,
-                final double timeStep, final double duration) {
-        this.componentsProvider = new ComponentsProvider(length, width, door,
-                minRadius, maxRadius, tao, beta, maxVelocityModule, maxAmountOfParticles);
-        this.walls = componentsProvider.buildWalls();
+    @Autowired
+    public BoardingScene(final ComponentsProvider componentsProvider,
+                         @Value("${custom.simulation.time-step}") final double timeStep) {
+        this.componentsProvider = componentsProvider;
+
+        // Airplane and particles
+        this.airplane = componentsProvider.getAirplane();
         this.particles = componentsProvider.createParticles();
 
         // Update stuff
-        this.duration = duration;
         this.actualTime = 0;
         this.timeStep = timeStep;
 
-        this.outsideParticles = 0;
-        this.newOutside = 0;
-
+        // Others
         this.clean = true;
     }
 
@@ -121,10 +95,10 @@ public class Room implements System<Room.RoomState> {
     // ================================================================================================================
 
     /**
-     * @return The {@link Wall}s in this room.
+     * @return The {@link Airplane} to be boarded.
      */
-    /* package */ List<Wall> getWalls() {
-        return new LinkedList<>(walls);
+    /* package */ Airplane getAirplane() {
+        return airplane;
     }
 
     /**
@@ -135,10 +109,17 @@ public class Room implements System<Room.RoomState> {
     }
 
     /**
-     * @return The actual amount of new {@link Particle}s outside the room.
+     * @return The time step (used to update in time the system).
      */
-    /* package */ long getNewOutside() {
-        return newOutside;
+    /* package */ double getTimeStep() {
+        return timeStep;
+    }
+
+    /**
+     * @return The actual time.
+     */
+    public double getActualTime() {
+        return actualTime;
     }
 
     /**
@@ -147,7 +128,8 @@ public class Room implements System<Room.RoomState> {
      * @return {@code true} if the simulation should stop, or {@code false} otherwise.
      */
     public boolean shouldStop() {
-        return actualTime > duration;
+        return actualTime > 10;
+//        return true; // TODO: set a stop condition
     }
 
 
@@ -162,7 +144,7 @@ public class Room implements System<Room.RoomState> {
         for (Particle particle : particles) {
             final List<Obstacle> inContact = Stream
                     .concat(
-                            walls.stream(),
+                            airplane.getObstacles().stream(),
                             particles.stream().filter(otherParticle -> otherParticle != particle)
                     )
                     .filter(obstacle -> obstacle.doOverlap(particle))
@@ -171,10 +153,6 @@ public class Room implements System<Room.RoomState> {
         }
         // Then, move
         particles.forEach(particle -> particle.move(timeStep));
-        // Finally, update internal variables
-        final long newTotalOutside = particles.stream().filter(Particle::hasReachedTheGoal).count();
-        this.newOutside = newTotalOutside - this.outsideParticles;
-        this.outsideParticles = newTotalOutside;
         this.actualTime += timeStep;
     }
 
@@ -183,16 +161,14 @@ public class Room implements System<Room.RoomState> {
         if (clean) {
             return;
         }
-        this.walls.clear();
         this.particles.clear();
-        this.walls.addAll(componentsProvider.buildWalls());
         this.particles.addAll(componentsProvider.createParticles());
         this.clean = true;
     }
 
     @Override
-    public RoomState outputState() {
-        return new RoomState(this);
+    public BoardingSceneState outputState() {
+        return new BoardingSceneState(this);
     }
 
     // ================================================================================================================
@@ -201,14 +177,14 @@ public class Room implements System<Room.RoomState> {
 
 
     /**
-     * Represents the state of a {@link Room}.
+     * The state of a {@link BoardingScene}.
      */
-    public static final class RoomState implements State {
+    public static final class BoardingSceneState implements State {
 
         /**
-         * The {@link Wall}s in this room.
+         * The state of the {@link Airplane} to be boarded.
          */
-        private final List<Wall.WallState> wallStates;
+        private final Airplane.AirplaneState airplaneState;
 
         /**
          * The {@link Particle}s in this room.
@@ -216,31 +192,35 @@ public class Room implements System<Room.RoomState> {
         private final List<Particle.ParticleState> particleStates;
 
         /**
-         * The new amount of particle's that have left the room in this state (i.e the flow).
+         * The moment to which this state belongs to.
          */
-        private final long newOutside;
+        private final double actualTime;
 
+        /**
+         * The time step used in the simulation.
+         */
+        private final double timeStep;
 
         /**
          * Constructor.
          *
-         * @param room The {@link Room} owning this state.
+         * @param boardingScene The {@link BoardingScene} owning this state.
          */
-        /* package */ RoomState(final Room room) {
-            this.wallStates = room.getWalls().stream()
-                    .map(Wall.WallState::new)
-                    .collect(Collectors.toList());
-            this.particleStates = room.getParticles().stream()
+        /* package */ BoardingSceneState(BoardingScene boardingScene) {
+            this.airplaneState = boardingScene.getAirplane().outputState();
+            final List<Particle.ParticleState> particleStatesAux = boardingScene.getParticles().stream()
                     .map(Particle.ParticleState::new)
                     .collect(Collectors.toList());
-            this.newOutside = room.getNewOutside();
+            this.particleStates = Collections.unmodifiableList(particleStatesAux); // Make it unmodifiable.
+            this.actualTime = boardingScene.getActualTime();
+            this.timeStep = boardingScene.getTimeStep();
         }
 
         /**
-         * @return The {@link Wall}s in this room.
+         * @return The state of the {@link Airplane} to be boarded.
          */
-        public List<Wall.WallState> getWallStates() {
-            return wallStates;
+        public Airplane.AirplaneState getAirplaneState() {
+            return airplaneState;
         }
 
         /**
@@ -251,10 +231,17 @@ public class Room implements System<Room.RoomState> {
         }
 
         /**
-         * @return The new amount of particle's that have left the room in this state (i.e the flow).
+         * @return The moment to which this state belongs to.
          */
-        public long getNewOutside() {
-            return newOutside;
+        public double getActualTime() {
+            return actualTime;
+        }
+
+        /**
+         * @return The time step used in the simulation.
+         */
+        public double getTimeStep() {
+            return timeStep;
         }
     }
 }

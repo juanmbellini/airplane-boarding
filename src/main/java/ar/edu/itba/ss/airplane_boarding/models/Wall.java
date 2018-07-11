@@ -115,8 +115,8 @@ public final class Wall implements StateHolder<Wall.WallState>, Obstacle {
          * @param wall The {@link Wall} owning this state.
          */
         /* package */ WallState(final Wall wall) {
-            initialPoint = wall.initialPoint;
-            finalPoint = wall.finalPoint;
+            initialPoint = wall.getInitialPoint();
+            finalPoint = wall.getFinalPoint();
         }
 
         /**

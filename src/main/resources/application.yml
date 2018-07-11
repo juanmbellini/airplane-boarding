@@ -7,10 +7,15 @@ spring:
         banner-mode: "off"
 custom:
     system:
-        room:
-            L: 20
-            W: 20
-            D: 1.2
+        airplane:
+            rows: 27
+            columns: 3
+            central-hall-width: 1.0
+            front-hall-length: 2
+            seat-width: 0.5
+            seat-separation: 0.5
+            door-length: 1.0
+
 
 
 
