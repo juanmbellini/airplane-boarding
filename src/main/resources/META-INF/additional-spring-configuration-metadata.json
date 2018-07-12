@@ -36,6 +36,16 @@
       "description": "The length of the airplane door."
     },
     {
+      "name": "custom.system.jet-bridge.length",
+      "type": "java.lang.Double",
+      "description": "The length of the jet bridge."
+    },
+    {
+      "name": "custom.system.jet-bridge.width",
+      "type": "java.lang.Double",
+      "description": "The length of the jet bridge."
+    },
+    {
       "name": "custom.system.particle.min-radius",
       "type": "java.lang.Integer",
       "description": "The min. radius of a particle."

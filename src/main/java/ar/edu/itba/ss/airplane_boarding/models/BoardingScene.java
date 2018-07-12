@@ -26,13 +26,13 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
             () -> 30d + 15d * new Random().nextDouble();
 
     // ================================================================================================================
-    // Airplane and particles
+    // fixed Obstacles and particles
     // ================================================================================================================
 
     /**
-     * The {@link Airplane} to be boarded.
+     * The {@link Wall}s in the system.
      */
-    private final Airplane airplane;
+    private final List<Wall> obstacles;
 
     /**
      * The {@link Particle}s in this room.
@@ -89,8 +89,13 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
                          @Value("${custom.simulation.time-step}") final double timeStep) {
         this.componentsProvider = componentsProvider;
 
-        // Airplane and particles
-        this.airplane = componentsProvider.getAirplane();
+        // obstacles and particles
+        final List<Wall> obstacles = new LinkedList<>();
+        obstacles.addAll(componentsProvider.getAirplane().getObstacles());
+        obstacles.addAll(componentsProvider.getJetBridge().getObstacles());
+        obstacles.addAll(componentsProvider.getWaitingRoom().getObstacles());
+        this.obstacles = Collections.unmodifiableList(obstacles);
+
         this.particles = componentsProvider.createParticles();
 
         // Update stuff
@@ -107,10 +112,10 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
     // ================================================================================================================
 
     /**
-     * @return The {@link Airplane} to be boarded.
+     * @return The {@link Wall}s in the system.
      */
-    /* package */ Airplane getAirplane() {
-        return airplane;
+    public List<Wall> getObstacles() {
+        return obstacles; // This can be returned as is because it is unmodifiable.
     }
 
     /**
@@ -168,7 +173,7 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
         for (Particle particle : particlesThatCanMove) {
             final List<Obstacle> inContact = Stream
                     .concat(
-                            airplane.getObstacles().stream(),
+                            obstacles.stream(),
                             particles.stream().filter(otherParticle -> otherParticle != particle)
                     )
                     .filter(obstacle -> obstacle.doOverlap(particle))
@@ -223,9 +228,9 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
     public static final class BoardingSceneState implements State {
 
         /**
-         * The state of the {@link Airplane} to be boarded.
+         * The states of the {@link Wall}s that make up the obstacles in the scene.
          */
-        private final Airplane.AirplaneState airplaneState;
+        private final List<Wall.WallState> obstaclesStates;
 
         /**
          * The {@link Particle}s in this room.
@@ -248,7 +253,10 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
          * @param boardingScene The {@link BoardingScene} owning this state.
          */
         /* package */ BoardingSceneState(BoardingScene boardingScene) {
-            this.airplaneState = boardingScene.getAirplane().outputState();
+            final List<Wall.WallState> obstacleStatesAux = boardingScene.getObstacles().stream()
+                    .map(Wall::outputState)
+                    .collect(Collectors.toList());
+            this.obstaclesStates = Collections.unmodifiableList(obstacleStatesAux);
             final List<Particle.ParticleState> particleStatesAux = boardingScene.getParticles().stream()
                     .map(Particle.ParticleState::new)
                     .collect(Collectors.toList());
@@ -258,10 +266,10 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
         }
 
         /**
-         * @return The state of the {@link Airplane} to be boarded.
+         * @return
          */
-        public Airplane.AirplaneState getAirplaneState() {
-            return airplaneState;
+        public List<Wall.WallState> getObstaclesStates() {
+            return obstaclesStates;
         }
 
         /**

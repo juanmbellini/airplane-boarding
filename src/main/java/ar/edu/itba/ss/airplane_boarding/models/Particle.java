@@ -135,6 +135,7 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         this.maxVelocityModule = maxVelocityModule;
 //        this.reachedGoal = false;
         this.canMove = false;
+        this.goal.initialize(this);
     }
 
 
@@ -235,7 +236,7 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         this.radius = newRadius;
         this.velocity = newVelocity;
         this.position = position.add(getVelocity().scalarMultiply(timeStep));
-        this.goal.notifyMove(this);
+        this.goal.notifyMove();
 
         this.canMove = false;
         this.newRadius = null;

@@ -1,17 +1,15 @@
 package ar.edu.itba.ss.airplane_boarding.utils;
 
-import ar.edu.itba.ss.airplane_boarding.models.Airplane;
-import ar.edu.itba.ss.airplane_boarding.models.BoardingStrategy;
-import ar.edu.itba.ss.airplane_boarding.models.Goal;
-import ar.edu.itba.ss.airplane_boarding.models.Particle;
+import ar.edu.itba.ss.airplane_boarding.models.*;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
-import java.util.*;
-import java.util.function.Function;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -72,6 +70,34 @@ public class ComponentsProvider {
      */
     private final Airplane airplane;
 
+    // ================================================================================================================
+    // Jet bridge stuff
+    // ================================================================================================================
+
+    /**
+     * The length of thw jet bridge.
+     */
+    private final double jetBridgeLength;
+
+    /**
+     * The width of the jet bridge.
+     */
+    private final double jetBridgeWidth;
+
+    /**
+     * The jet bridge.
+     */
+    private final JetBridge jetBridge;
+
+
+    // ================================================================================================================
+    // Waiting room stuff
+    // ================================================================================================================
+
+    /**
+     * Thw waiting room.
+     */
+    private final WaitingRoom waitingRoom;
 
     // ================================================================================================================
     // Boarding stuff
@@ -112,6 +138,16 @@ public class ComponentsProvider {
     private final double maxVelocityModule;
 
     /**
+     * The separation between particles when they are initialized;
+     */
+    private final double particleSeparation;
+
+    /**
+     * The starting 'y' component.
+     */
+    private final double startingY;
+
+    /**
      * Constructor.
      *
      * @param amountOfSeatRows     Indicates how many rows of seats the built {@link Airplane} will have.
@@ -122,6 +158,8 @@ public class ComponentsProvider {
      * @param seatWidth            The width each seat has.
      * @param seatSeparation       The separation between each row of seats.
      * @param doorLength           The length of the airplane door.
+     * @param jetBridgeLength      The length of the jet bridge.
+     * @param jetBridgeWidth       The width of the jet bridge.
      * @param boardingStrategy     The {@link BoardingStrategy} to be used
      *                             (used to initialize {@link Particle}s according to it).
      * @param minRadius            The min. radius of the {@link Particle}s to be created
@@ -140,6 +178,8 @@ public class ComponentsProvider {
                               @Value("${custom.system.airplane.seat-width}") final double seatWidth,
                               @Value("${custom.system.airplane.seat-separation}") final double seatSeparation,
                               @Value("${custom.system.airplane.door-length}") final double doorLength,
+                              @Value("${custom.system.jet-bridge.length}") final double jetBridgeLength,
+                              @Value("${custom.system.jet-bridge.width}") final double jetBridgeWidth,
                               @Value("${custom.simulation.boarding-strategy}") final BoardingStrategy boardingStrategy,
                               @Value("${custom.system.particle.min-radius}") final double minRadius,
                               @Value("${custom.system.particle.max-radius}") final double maxRadius,
@@ -148,6 +188,15 @@ public class ComponentsProvider {
                               @Value("${custom.system.particle.max-speed}") final double maxVelocityModule) {
         Assert.notNull(boardingStrategy, "The boarding strategy must not be null");
         // Airplane and Particle stuff are validated in their respective creator methods.
+
+        // Particle stuff
+        this.minRadius = minRadius;
+        this.maxRadius = maxRadius;
+        this.tao = tao;
+        this.beta = beta;
+        this.maxVelocityModule = maxVelocityModule;
+        this.particleSeparation = 5 * maxRadius;
+        this.startingY = jetBridgeWidth + 3 * particleSeparation;
 
         // Airplane stuff
         this.airplane = Airplane.buildFromSpecifications(amountOfSeatRows, amountOfSeatsPerSide,
@@ -159,17 +208,26 @@ public class ComponentsProvider {
         this.seatWidth = seatWidth;
         this.seatSeparation = seatSeparation;
         this.doorLength = doorLength;
+        final double airplaneWidth = centralHallWidth + 2 * amountOfSeatsPerSide * seatWidth;
+
+        // Jet bridge stuff
+        this.jetBridge = JetBridge.buildFromSpecifications(jetBridgeWidth, jetBridgeLength, airplaneWidth);
+        this.jetBridgeLength = jetBridgeLength;
+        this.jetBridgeWidth = jetBridgeWidth;
+
+        // Waiting room stuff
+        // TODO: build according the batch
+        final double waitingRoomWidth = 2 * amountOfSeatRows * amountOfSeatsPerSide * 2 * particleSeparation
+                + 10 * particleSeparation;
+        final double waitingRoomLength = startingY + 2 * particleSeparation;
+        this.waitingRoom = WaitingRoom.buildFromSpecifications(waitingRoomWidth, waitingRoomLength,
+                airplaneWidth, jetBridgeWidth, jetBridgeLength);
 
         // Boarding stuff
         this.boardingStrategy = boardingStrategy;
 
-        // Particle stuff
-        this.minRadius = minRadius;
-        this.maxRadius = maxRadius;
-        this.tao = tao;
-        this.beta = beta;
-        this.maxVelocityModule = maxVelocityModule;
 
+        ;
     }
 
     /**
@@ -179,6 +237,24 @@ public class ComponentsProvider {
      */
     public Airplane getAirplane() {
         return airplane;
+    }
+
+    /**
+     * Provides the jet bridge.
+     *
+     * @return The jet bridge.
+     */
+    public JetBridge getJetBridge() {
+        return jetBridge;
+    }
+
+    /**
+     * Provides the waiting room.
+     *
+     * @return The waiting room.
+     */
+    public WaitingRoom getWaitingRoom() {
+        return waitingRoom;
     }
 
     /**
@@ -240,20 +316,29 @@ public class ComponentsProvider {
                 throw new RuntimeException("This should not happen");
         }
 
-        final double startingX = centralHallWidth / 2 + amountOfSeatsPerSide * seatWidth + maxRadius;
+        final double startingX = 2 * particleSeparation
+                + centralHallWidth / 2 + amountOfSeatsPerSide * seatWidth + maxRadius + jetBridgeLength;
         return IntStream.range(0, goals.size())
                 .mapToObj(idx -> {
                     final Goal goal = goals.get(idx);
                     // Must give a lot of separation in order to avoid congestion
-                    final Vector2D initialPosition = new Vector2D(startingX + 10 * maxRadius * idx, maxRadius);
+                    final Vector2D initialPosition = new Vector2D(startingX + 2 * particleSeparation * idx, startingY);
                     return new Particle(maxRadius, initialPosition, Vector2D.ZERO, goal,
                             minRadius, maxRadius, tao, beta, maxVelocityModule);
                 })
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Builds the {@link Goal} according to the given specifications..
+     *
+     * @param targetRow    The row where the final target is.
+     * @param targetColumn The column where the final target is.
+     * @param targetSide   The side of the airplane where the target is.
+     * @return The built {@link Goal}.
+     */
     private Goal buildGoal(final int targetRow, final int targetColumn, final Goal.AirplaneSide targetSide) {
         return new Goal(frontHallLength, centralHallWidth, doorLength, seatWidth, seatSeparation,
-                targetRow, targetColumn, targetSide, minRadius);
+                targetRow, targetColumn, targetSide, jetBridgeWidth, particleSeparation, minRadius);
     }
 }

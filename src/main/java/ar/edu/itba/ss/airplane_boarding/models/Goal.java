@@ -5,6 +5,7 @@ import org.springframework.util.Assert;
 
 import java.util.Optional;
 import java.util.Random;
+import java.util.function.Supplier;
 
 /**
  * Class representing a goal.
@@ -23,23 +24,38 @@ public class Goal {
     /**
      * Constructor.
      *
-     * @param frontHallLength  The airplane's front hall length.
-     * @param centralHallWidth The airplane's central hall width.
-     * @param doorLength       The door's length.
-     * @param seatWidth        The seats width.
-     * @param seatSeparation   The sets separation.
-     * @param targetRow        The row in which the final goal is located (0-indexed).
-     * @param targetColumn     The column in which the final goal is located (0-indexed).
-     *                         Note that column numbers are counted from the center to the outside.
-     * @param targetSide       The side of the airplane in which the final goal is located (i.e LEFT or RIGHT).
-     * @param margin           A margin to be used when calculating differences.
+     * @param frontHallLength     The airplane's front hall length.
+     * @param centralHallWidth    The airplane's central hall width.
+     * @param doorLength          The door's length.
+     * @param seatWidth           The seats width.
+     * @param seatSeparation      The sets separation.
+     * @param targetRow           The row in which the final goal is located (0-indexed).
+     * @param targetColumn        The column in which the final goal is located (0-indexed).
+     *                            Note that column numbers are counted from the center to the outside.
+     * @param targetSide          The side of the airplane in which the final goal is located (i.e LEFT or RIGHT).
+     * @param jetBridgeWidth      The width of the jet bridge (seen in an x-y plane it would be the length).
+     * @param particleXSeparation The separation between particles when they are initialized
+     *                            (used to generate the region where they must go
+     *                            when approaching to the jet bridge).
+     * @param margin              A margin to be used when calculating differences.
      */
     public Goal(final double frontHallLength, final double centralHallWidth, final double doorLength,
                 final double seatWidth, final double seatSeparation,
                 final int targetRow, final int targetColumn, final AirplaneSide targetSide,
+                final double jetBridgeWidth, final double particleXSeparation,
                 final double margin) {
         this.stateMachine = new GoalStateMachine(frontHallLength, centralHallWidth, doorLength,
-                seatWidth, seatSeparation, targetRow, targetColumn, targetSide, margin);
+                seatWidth, seatSeparation, targetRow, targetColumn, targetSide,
+                jetBridgeWidth, particleXSeparation, margin);
+    }
+
+    /**
+     * Initializes this goal.
+     *
+     * @param particle The {@link Particle} that will use this goal instance.
+     */
+    public void initialize(final Particle particle) {
+        this.stateMachine.initialize(particle);
     }
 
     /**
@@ -55,11 +71,10 @@ public class Goal {
     /**
      * Notify to this goal that the given {@code particle} hsa moved towards it.
      *
-     * @param particle The {@link Particle} that moved.
      * @apiNote This method should only be called by the {@link Particle} that owns this goal.
      */
-    public void notifyMove(final Particle particle) {
-        this.stateMachine.notifyMove(particle);
+    public void notifyMove() {
+        this.stateMachine.notifyMove();
     }
 
 
@@ -95,9 +110,7 @@ public class Goal {
          * @param sign Indicates the sign of the side (i.e the direction).
          */
         AirplaneSide(int sign) {
-            if (sign != 1 && sign != -1) {
-                throw new IllegalArgumentException("The sign should be 1 or -1.");
-            }
+            Assert.isTrue(sign == 1 || sign == -1, "The sign should be 1 or -1.");
             this.sign = sign;
         }
 
@@ -113,6 +126,11 @@ public class Goal {
      * Represents the state machine a goal has in order to set the next position.
      */
     private final static class GoalStateMachine {
+
+        /**
+         * The particle that will use this state machine.
+         */
+        private Particle particle;
 
         /**
          * The airplane's front hall length.
@@ -147,12 +165,19 @@ public class Goal {
          * The side of the airplane in which the final goal is located.
          */
         private final AirplaneSide targetSide;
-
+        /**
+         * The width of the jet bridge (seen in an x-y plane it would be the length).
+         */
+        private final double jetBridgeWidth;
+        /**
+         * The separation between particles when they are initialized
+         * (used to generate the region where they must go when approaching to the jet bridge).
+         */
+        private final double particleXSeparation;
         /**
          * A margin to be used when calculating differences.
          */
         private final double margin;
-
         /**
          * The actual state of this state machine.
          */
@@ -160,20 +185,25 @@ public class Goal {
 
 
         /**
-         * @param frontHallLength  The airplane's front hall length.
-         * @param centralHallWidth The airplane's central hall width.
-         * @param doorLength       The door's length.
-         * @param seatWidth        The seats width.
-         * @param seatSeparation   The sets separation.
-         * @param targetRow        The row in which the final goal is located.
-         * @param targetColumn     The column in which the final goal is located.
-         *                         Note that column numbers are counted from the center to the outside.
-         * @param targetSide       The side of the airplane in which the final goal is located.
-         * @param margin           A margin to be used when calculating differences.
+         * @param frontHallLength     The airplane's front hall length.
+         * @param centralHallWidth    The airplane's central hall width.
+         * @param doorLength          The door's length.
+         * @param seatWidth           The seats width.
+         * @param seatSeparation      The sets separation.
+         * @param targetRow           The row in which the final goal is located.
+         * @param targetColumn        The column in which the final goal is located.
+         *                            Note that column numbers are counted from the center to the outside.
+         * @param targetSide          The side of the airplane in which the final goal is located.
+         * @param jetBridgeWidth      The width of the jet bridge (seen in an x-y plane it would be the length).
+         * @param particleXSeparation The separation between particles when they are initialized
+         *                            (used to generate the region where they must go
+         *                            when approaching to the jet bridge).
+         * @param margin              A margin to be used when calculating differences.
          */
         private GoalStateMachine(final double frontHallLength, final double centralHallWidth, final double doorLength,
                                  final double seatWidth, final double seatSeparation,
                                  final int targetRow, final int targetColumn, final AirplaneSide targetSide,
+                                 final double jetBridgeWidth, final double particleXSeparation,
                                  final double margin) {
             this.frontHallLength = frontHallLength;
             this.centralHallWidth = centralHallWidth;
@@ -183,9 +213,29 @@ public class Goal {
             this.targetRow = targetRow;
             this.targetColumn = targetColumn;
             this.targetSide = targetSide;
+            this.jetBridgeWidth = jetBridgeWidth;
+            this.particleXSeparation = particleXSeparation;
             this.margin = margin;
+        }
 
-            this.actualState = new ReachDoorState(this);
+        /**
+         * Initializes the state machine.
+         *
+         * @param particle The {@link Particle} that will use the state machine.
+         */
+        /* package */ void initialize(final Particle particle) {
+            Assert.state(this.particle == null && actualState == null,
+                    "The state machine is already initialized ");
+            Assert.notNull(particle, "The particle must not be null");
+            this.particle = particle;
+            this.actualState = new ApproachJetBridgeState(this, particle.getPosition().getX());
+        }
+
+        /**
+         * @return The particle that will use this state machine.
+         */
+        /* package */ Particle getParticle() {
+            return particle;
         }
 
         /**
@@ -241,8 +291,23 @@ public class Goal {
         /**
          * @return The side of the airplane in which the final goal is located.
          */
-        /* package */  AirplaneSide getTargetSide() {
+        /* package */ AirplaneSide getTargetSide() {
             return targetSide;
+        }
+
+        /**
+         * @return The width of the jet bridge (seen in an x-y plane it would be the length).
+         */
+        /* package */ double getJetBridgeWidth() {
+            return jetBridgeWidth;
+        }
+
+        /**
+         * @return The separation between particles when they are initialized
+         * (used to generate the region where they must go when approaching to the jet bridge).
+         */
+        /* package */ double getParticleXSeparation() {
+            return particleXSeparation;
         }
 
         /**
@@ -259,6 +324,7 @@ public class Goal {
          * @return The next position for the owner of the goal that owns the state machine.
          */
         /* package */ Vector2D getNextPosition() {
+            Assert.state(actualState != null && particle != null, "The state machine must be initialized first");
             return actualState.getNextPosition();
         }
 
@@ -266,18 +332,19 @@ public class Goal {
          * Makes this state machine go to the next state.
          */
         /* package */ void nextState() {
+            Assert.state(actualState != null && particle != null, "The state machine must be initialized first");
             this.actualState = actualState.nextState();
         }
 
         /**
          * Notifies this state machine that the given {@link Particle} has moved towards the {@link Goal} that owns it.
          *
-         * @param particle The {@link Particle} that moved.
          * @apiNote This method should only be called by the {@link Particle}
          * that owns the {@link Goal} that owns this state machine.
          */
-        /* package */ void notifyMove(final Particle particle) {
-            this.actualState.notifyMove(particle);
+        /* package */ void notifyMove() {
+            Assert.state(actualState != null && particle != null, "The state machine must be initialized first");
+            this.actualState.notifyMove();
         }
 
         /**
@@ -286,6 +353,7 @@ public class Goal {
          * @return {@code true} if the state machine's state is the {@link FinalGoalState}, or {@code false} otherwise.
          */
         /* package */ boolean isLastMovingTarget() {
+            Assert.state(actualState != null && particle != null, "The state machine must be initialized first");
             return this.actualState.getClass() == FinalGoalState.class;
         }
     }
@@ -334,19 +402,18 @@ public class Goal {
         /**
          * Notifies this state that the given {@link Particle} has moved towards the {@link Goal} that owns it.
          *
-         * @param particle The {@link Particle} that moved.
          * @apiNote This method should only be called by the {@link Particle}
          * that owns the {@link Goal} that owns the state machine that owns this state.
          */
         /* package */
-        abstract void notifyMove(final Particle particle);
+        abstract void notifyMove();
     }
 
-
     /**
-     * State in which the particle must reach the airplane door (the "reach check" is done on a region basis).
+     * An abstract state in which the goal is in the center of a rectangular region,
+     * and the next state is given when reached this region.
      */
-    private final static class ReachDoorState extends GoalState {
+    private abstract static class ReachARectangularRegionState extends GoalState {
 
         /**
          * The next position for the owner of the goal that owns the state machine (stored to avoid recalculating a it)
@@ -371,16 +438,31 @@ public class Goal {
         private final double finishingY;
 
         /**
+         * A {@link Supplier} that returns the next state.
+         */
+        private final Supplier<GoalState> nextStateSupplier;
+
+
+        /**
          * Constructor.
          *
-         * @param goalStateMachine The {@link GoalStateMachine} that owns this state.
+         * @param goalStateMachine  The {@link GoalStateMachine} that owns this state.
+         * @param startingX         The starting value for the 'x' component of the goal.
+         * @param finishingX        The finishing value for the 'x' component of the goal.
+         * @param startingY         The starting value for the 'y' component of the goal.
+         * @param finishingY        The finishing value for the 'y' component of the goal.
+         * @param nextStateSupplier A {@link Supplier} that returns the next state.
          */
-        private ReachDoorState(GoalStateMachine goalStateMachine) {
+        private ReachARectangularRegionState(final GoalStateMachine goalStateMachine,
+                                             final double startingX, final double finishingX,
+                                             final double startingY, final double finishingY,
+                                             final Supplier<GoalState> nextStateSupplier) {
             super(goalStateMachine);
-            this.startingX = goalStateMachine.getCentralHallWidth() / 2;
-            this.finishingX = startingX + 4 * goalStateMachine.getMargin();
-            this.startingY = 0;
-            this.finishingY = goalStateMachine.getDoorLength();
+            this.startingX = startingX;
+            this.finishingX = finishingX;
+            this.startingY = startingY;
+            this.finishingY = finishingY;
+            this.nextStateSupplier = nextStateSupplier;
             final double x = this.startingX + (this.finishingX - this.startingX) / 2;
             final double y = this.startingY + (this.finishingY - this.startingY) / 2;
             this.nextPosition = new Vector2D(x, y);
@@ -388,7 +470,7 @@ public class Goal {
 
         @Override
         /* package */ GoalState nextState() {
-            return new FrontHallState(this.getGoalStateMachine());
+            return nextStateSupplier.get();
         }
 
         @Override
@@ -397,9 +479,10 @@ public class Goal {
         }
 
         @Override
-        /* package */ void notifyMove(Particle particle) {
-            final Vector2D position = particle.getPosition();
+        /* package */ void notifyMove() {
+            final Vector2D position = getGoalStateMachine().getParticle().getPosition();
             final double margin = getGoalStateMachine().getMargin();
+            // Check whether the particle has enter the center of the target row
             if ((this.startingX + margin <= position.getX()
                     && position.getX() <= this.finishingX - margin)
                     && (this.startingY + margin <= position.getY()
@@ -407,6 +490,48 @@ public class Goal {
                 // In this case we assume that the goal was reached, so we move forward the state machine
                 getGoalStateMachine().nextState();
             }
+        }
+    }
+
+    /**
+     * State in which the jet bridge must be approached.
+     */
+    private final static class ApproachJetBridgeState extends ReachARectangularRegionState {
+
+        /**
+         * Constructor.
+         *
+         * @param goalStateMachine The {@link GoalStateMachine} that owns this state.
+         * @param startingX        The 'x' component of the starting point of the particle owning the state machine.
+         */
+        private ApproachJetBridgeState(final GoalStateMachine goalStateMachine, final double startingX) {
+            super(goalStateMachine,
+                    startingX - goalStateMachine.getParticleXSeparation(),
+                    startingX + goalStateMachine.getParticleXSeparation(),
+                    0,
+                    goalStateMachine.getJetBridgeWidth() - goalStateMachine.getMargin() / 2,
+                    () -> new ReachDoorState(goalStateMachine));
+        }
+    }
+
+
+    /**
+     * State in which the particle must reach the airplane door (the "reach check" is done on a region basis).
+     */
+    private final static class ReachDoorState extends ReachARectangularRegionState {
+
+        /**
+         * Constructor.
+         *
+         * @param goalStateMachine The {@link GoalStateMachine} that owns this state.
+         */
+        private ReachDoorState(GoalStateMachine goalStateMachine) {
+            super(goalStateMachine,
+                    goalStateMachine.getCentralHallWidth() / 2,
+                    goalStateMachine.getCentralHallWidth() / 2 + 4 * goalStateMachine.getMargin(),
+                    0,
+                    goalStateMachine.getDoorLength(),
+                    () -> new FrontHallState(goalStateMachine));
         }
     }
 
@@ -449,10 +574,10 @@ public class Goal {
         }
 
         @Override
-        /* package */ void notifyMove(final Particle particle) {
+        /* package */ void notifyMove() {
             // Check whether the particle has overstepped the row's final line.
             // TODO: being inside the airplane
-            final Vector2D position = particle.getPosition();
+            final Vector2D position = getGoalStateMachine().getParticle().getPosition();
             if (position.getY() + getGoalStateMachine().getMargin() > getNextPosition().getY()) {
                 // In this case we assume that the goal was reached, so we move forward the state machine
                 getGoalStateMachine().nextState();
@@ -509,9 +634,9 @@ public class Goal {
         }
 
         @Override
-        /* package */ void notifyMove(Particle particle) {
+        /* package */ void notifyMove() {
             // Check whether the particle has overstepped the row's final line.
-            final Vector2D position = particle.getPosition();
+            final Vector2D position = getGoalStateMachine().getParticle().getPosition();
             if (position.getY() + getGoalStateMachine().getMargin() > getNextPosition().getY()) {
                 // In this case we assume that the goal was reached, so we move forward the state machine
                 getGoalStateMachine().nextState();
@@ -522,82 +647,57 @@ public class Goal {
     /**
      * The last middle state (is different because the "reach check" is done on a region basis).
      */
-    private final static class LastMiddleState extends GoalState {
-
-        /**
-         * The next position for the owner of the goal that owns the state machine (stored to avoid recalculating it).
-         */
-        private final Vector2D nextPosition;
-
-        /**
-         * The starting value for the 'x' component of the goal.
-         */
-        private final double startingX;
-        /**
-         * The finishing value for the 'x' component of the goal.
-         */
-        private final double finishingX;
-        /**
-         * The starting value for the 'y' component of the goal.
-         */
-        private final double startingY;
-        /**
-         * The finishing value for the 'y' component of the goal.
-         */
-        private final double finishingY;
+    private final static class LastMiddleState extends ReachARectangularRegionState {
 
         /**
          * Constructor.
          *
          * @param goalStateMachine The {@link GoalStateMachine} that owns this state.
          */
-        private LastMiddleState(GoalStateMachine goalStateMachine) {
-            super(goalStateMachine);
+        private LastMiddleState(final GoalStateMachine goalStateMachine) {
+            super(goalStateMachine,
+                    calculateStartingX(goalStateMachine),
+                    calculateFinishingX(goalStateMachine),
+                    goalStateMachine.getFrontHallLength()
+                            + goalStateMachine.getTargetRow() * goalStateMachine.getSeatSeparation(),
+                    goalStateMachine.getFrontHallLength()
+                            + (goalStateMachine.getTargetRow() + 1) * goalStateMachine.getSeatSeparation(),
+                    () -> new FinalGoalState(goalStateMachine));
+        }
+
+        /**
+         * Calculates which is the starting 'x' according to the given {@code goalStateMachine}.
+         *
+         * @param goalStateMachine The {@link GoalStateMachine} from where data to perform the calculation is taken.
+         * @return The starting 'x'.
+         */
+        private static double calculateStartingX(final GoalStateMachine goalStateMachine) {
             final double xMax = goalStateMachine.centralHallWidth / 2;
-            switch (getGoalStateMachine().getTargetSide()) {
-                case LEFT: {
-                    this.startingX = -xMax;
-                    this.finishingX = 0;
-                    break;
-                }
-                case RIGHT: {
-                    this.startingX = 0;
-                    this.finishingX = xMax;
-                    break;
-                }
+            switch (goalStateMachine.getTargetSide()) {
+                case LEFT:
+                    return -xMax;
+                case RIGHT:
+                    return 0;
                 default:
                     throw new RuntimeException("This should not happen");
             }
-            final double seatSeparation = goalStateMachine.getSeatSeparation();
-            this.startingY = goalStateMachine.getFrontHallLength() + goalStateMachine.getTargetRow() * seatSeparation;
-            this.finishingY = this.startingY + seatSeparation;
-
-            final double x = this.startingX + (this.finishingX - this.startingX) / 2;
-            final double y = this.startingY + (this.finishingY - this.startingY) / 2;
-            this.nextPosition = new Vector2D(x, y);
         }
 
-        @Override
-        /* package */ GoalState nextState() {
-            return new FinalGoalState(getGoalStateMachine());
-        }
-
-        @Override
-        /* package */ Vector2D getNextPosition() {
-            return nextPosition;
-        }
-
-        @Override
-        /* package */ void notifyMove(Particle particle) {
-            final Vector2D position = particle.getPosition();
-            final double margin = getGoalStateMachine().getMargin();
-            // Check whether the particle has enter the center of the target row
-            if ((this.startingX + margin <= position.getX()
-                    && position.getX() <= this.finishingX - margin)
-                    && (this.startingY + margin <= position.getY()
-                    && position.getY() <= this.finishingY - margin)) {
-                // In this case we assume that the goal was reached, so we move forward the state machine
-                getGoalStateMachine().nextState();
+        /**
+         * Calculates which is the finishing 'x' according to the given {@code goalStateMachine}.
+         *
+         * @param goalStateMachine The {@link GoalStateMachine} from where data to perform the calculation is taken.
+         * @return The starting 'x'.
+         */
+        private static double calculateFinishingX(final GoalStateMachine goalStateMachine) {
+            final double xMax = goalStateMachine.centralHallWidth / 2;
+            switch (goalStateMachine.getTargetSide()) {
+                case LEFT:
+                    return 0;
+                case RIGHT:
+                    return xMax;
+                default:
+                    throw new RuntimeException("This should not happen");
             }
         }
     }
@@ -639,8 +739,8 @@ public class Goal {
         }
 
         @Override
-        /* package */ void notifyMove(Particle particle) {
-            final Vector2D position = particle.getPosition();
+        /* package */ void notifyMove() {
+            final Vector2D position = getGoalStateMachine().getParticle().getPosition();
             final double margin = getGoalStateMachine().getMargin();
             // Check whether the particle has reached the seat (with a margin of error)
             if (position.distance(getNextPosition()) < margin) {
@@ -683,7 +783,7 @@ public class Goal {
         }
 
         @Override
-        /* package */ void notifyMove(Particle particle) {
+        /* package */ void notifyMove() {
             // In this case we don't do anything
         }
     }

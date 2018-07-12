@@ -58,7 +58,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<BoardingScene.BoardingSce
         final StringBuilder data = new StringBuilder();
         // First, headers
         final int amount = boardingSceneState.getParticleStates().size()
-                + 2 * boardingSceneState.getAirplaneState().getAirplaneObstacles().size();
+                + 2 * boardingSceneState.getObstaclesStates().size();
         data.append(amount)
                 .append("\n")
                 .append(frame)
@@ -69,7 +69,7 @@ public class OvitoFileSaverImpl extends OvitoFileSaver<BoardingScene.BoardingSce
             saveParticle(data, particle, identifier++);
         }
         // Save airplane obstacles
-        for (Wall.WallState wall : boardingSceneState.getAirplaneState().getAirplaneObstacles()) {
+        for (Wall.WallState wall : boardingSceneState.getObstaclesStates()) {
             saveWall(data, wall, identifier++);
         }
 
