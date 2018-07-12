@@ -164,6 +164,15 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     }
 
     /**
+     * Indicates whether this particle is storing luggage.
+     *
+     * @return {@code true} if the particle is storing luggage, or {@code false} otherwise.
+     */
+    public boolean isStoringLuggage() {
+        return this.goal.isTheLastTarget();
+    }
+
+    /**
      * Indicates whether this particle has already reached the goal.
      *
      * @return {@code true} if the particle reached the goal, or {@code false} otherwise.
@@ -199,7 +208,6 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
                     .map(Vector2D::normalize)
                     .map(v -> v.scalarMultiply(speed))
                     .orElse(Vector2D.ZERO); // If there is no more targets, just set the direction to zero
-//            this.newVelocity = goalDirection.scalarMultiply(speed);
         } else {
             // Particle is in contact with those obstacles in the list (i.e it overlaps)
             // Radius

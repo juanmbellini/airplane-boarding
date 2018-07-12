@@ -7,9 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.function.DoubleSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,6 +17,13 @@ import java.util.stream.Stream;
  */
 @Component
 public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
+
+    /**
+     * A {@link DoubleSupplier} that supplies random double values between 30d and 45d.
+     * Is used to get random values of storing luggage time.
+     */
+    private final static DoubleSupplier RANDOM_STORING_LUGGAGE_TIME_SUPPLIER =
+            () -> 30d + 15d * new Random().nextDouble();
 
     // ================================================================================================================
     // Airplane and particles
@@ -51,6 +57,11 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
     // ================================================================================================================
     // Others
     // ================================================================================================================
+
+    /**
+     * A {@link Map} holding the waiting time for particles (to simulate the moment in which they store luggage).
+     */
+    private final Map<Particle, Double> storingLuggageTime;
 
     /**
      * The components provider.
@@ -88,6 +99,7 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
 
         // Others
         this.clean = true;
+        storingLuggageTime = new HashMap<>();
     }
 
     // ================================================================================================================
@@ -128,7 +140,7 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
      * @return {@code true} if the simulation should stop, or {@code false} otherwise.
      */
     public boolean shouldStop() {
-        return actualTime > 120;
+        return actualTime > 180;
 //        return true; // TODO: set a stop condition
     }
 
@@ -140,8 +152,20 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
     @Override
     public void update() {
         this.clean = false;
-        // First, prepare the particles in order to be moved
-        for (Particle particle : particles) {
+
+        // First, get those that are storing yet luggage
+        final List<Particle> areStoringLuggage = storingLuggageTime.entrySet().stream()
+                .filter(e -> e.getValue() > 0)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        // Then filter the particle list to get just the ones that are not packing
+        final List<Particle> particlesThatCanMove = particles.stream()
+                .filter(p -> !areStoringLuggage.contains(p))
+                .collect(Collectors.toList());
+
+        // Then, prepare the particles in order to be moved
+        for (Particle particle : particlesThatCanMove) {
             final List<Obstacle> inContact = Stream
                     .concat(
                             airplane.getObstacles().stream(),
@@ -151,8 +175,25 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
                     .collect(Collectors.toList());
             particle.prepareMove(inContact, timeStep);
         }
+
         // Then, move
-        particles.forEach(particle -> particle.move(timeStep));
+        particlesThatCanMove.forEach(particle -> particle.move(timeStep));
+
+        // Then update the storing luggage times
+        final Map<Particle, Double> newStoringLuggageTimes = storingLuggageTime.entrySet().stream()
+                .filter(e -> e.getValue() > 0) // Only update those that are still storing luggage
+                .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), e.getValue() - timeStep))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        newStoringLuggageTimes.forEach(storingLuggageTime::put);
+
+        // Then, check if there are new particles that have arrived to their seats
+        final List<Particle> newStoringLuggage = particles.stream()
+                .filter(p -> !storingLuggageTime.containsKey(p))
+                .filter(Particle::isStoringLuggage)
+                .collect(Collectors.toList());
+        newStoringLuggage.forEach(p -> storingLuggageTime.put(p, RANDOM_STORING_LUGGAGE_TIME_SUPPLIER.getAsDouble()));
+
+        // Finally, update the time
         this.actualTime += timeStep;
     }
 

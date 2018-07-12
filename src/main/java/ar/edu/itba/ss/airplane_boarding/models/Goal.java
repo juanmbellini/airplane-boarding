@@ -64,6 +64,16 @@ public class Goal {
 
 
     /**
+     * Indicates that the target being returned is the last one.
+     *
+     * @return {@code true} if the goal is returning the last target, or {@code false} otherwise.
+     */
+    public boolean isTheLastTarget() {
+        return this.stateMachine.isLastMovingTarget();
+    }
+
+
+    /**
      * An enum to indicate whether the final goal is in the left or right side of the airplane.
      */
     public enum AirplaneSide {
@@ -268,6 +278,15 @@ public class Goal {
          */
         /* package */ void notifyMove(final Particle particle) {
             this.actualState.notifyMove(particle);
+        }
+
+        /**
+         * Indicates that the state machine is in the last moving state (i.e has the {@link FinalGoalState} state).
+         *
+         * @return {@code true} if the state machine's state is the {@link FinalGoalState}, or {@code false} otherwise.
+         */
+        /* package */ boolean isLastMovingTarget() {
+            return this.actualState.getClass() == FinalGoalState.class;
         }
     }
 
