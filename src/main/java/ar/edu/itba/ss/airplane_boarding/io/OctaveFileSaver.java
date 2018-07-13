@@ -15,11 +15,6 @@ import java.util.Queue;
 @Component("octaveFileSaver")
 public class OctaveFileSaver extends TextFileSaver<BoardingScene.BoardingSceneState> {
 
-//    /**
-//     * The simulation duration.
-//     */
-//    private final double duration;
-
     /**
      * The simulation time step.
      */
@@ -34,35 +29,26 @@ public class OctaveFileSaver extends TextFileSaver<BoardingScene.BoardingSceneSt
      * @param timeStep The simulation time step.
      */
     public OctaveFileSaver(@Value("${custom.output.octave}") final String filePath,
-//                           final double duration,
                            @Value("${custom.simulation.time-step}") final double timeStep) {
         super(filePath);
-//        this.duration = duration;
         this.timeStep = timeStep;
     }
 
     @Override
     public void doSave(final Writer writer, final Queue<BoardingScene.BoardingSceneState> queue) throws IOException {
-        // Save amount of particles that left the room in each time step.
-//        final String left = "left = [" + queue.stream()
-//                .map(Room.RoomState::getNewOutside)
-//                .map(Object::toString)
-//                .collect(Collectors.joining(", ")) + "];";
-
-//        final String duration = "duration = " + this.duration + ";";
         final String timeStep = "dt = " + this.timeStep + ";";
-//        final String time = "t = 0:dt:duration;";
+        final BoardingScene.BoardingSceneState lastState = queue.stream()
+                .skip(queue.size() - 1)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("This should not happen"));
+        final String duration = "duration = " + lastState.getActualTime() + ";";
 
         // Append results into the Writer
         writer
-//                .append(left)
-//                .append("\n")
-//                .append(duration)
-//                .append("\n")
+                .append(duration)
+                .append("\n")
                 .append(timeStep)
                 .append("\n")
-//                .append(time)
-//                .append("\n");
         ;
     }
 }

@@ -543,6 +543,34 @@ public class Goal {
         /* package */ boolean isInside() {
             return isInside;
         }
+
+        /**
+         * @return The starting value for the 'x' component of the goal.
+         */
+        /* package */ double getStartingX() {
+            return startingX;
+        }
+
+        /**
+         * @return The finishing value for the 'x' component of the goal.
+         */
+        /* package */  double getFinishingX() {
+            return finishingX;
+        }
+
+        /**
+         * @return The starting value for the 'y' component of the goal.
+         */
+        /* package */  double getStartingY() {
+            return startingY;
+        }
+
+        /**
+         * @return The finishing value for the 'y' component of the goal.
+         */
+        /* package */  double getFinishingY() {
+            return finishingY;
+        }
     }
 
     /**
@@ -714,6 +742,11 @@ public class Goal {
     private final static class LastMiddleState extends ReachARectangularRegionState {
 
         /**
+         * A flag indicating whether the state machine should go backwards.
+         */
+        private boolean flag;
+
+        /**
          * Constructor.
          *
          * @param goalStateMachine The {@link GoalStateMachine} that owns this state.
@@ -726,8 +759,27 @@ public class Goal {
                             + goalStateMachine.getTargetRow() * goalStateMachine.getSeatSeparation(),
                     goalStateMachine.getFrontHallLength()
                             + (goalStateMachine.getTargetRow() + 1) * goalStateMachine.getSeatSeparation(),
-                    () -> new FinalGoalState(goalStateMachine),
+                    () -> null,
                     true);
+            flag = false;
+        }
+
+        @Override
+        GoalState nextState() {
+            if (flag) {
+                final Vector2D position = getGoalStateMachine().getParticle().getPosition();
+                final int actualRow = (int) ((position.getX() - getGoalStateMachine().getFrontHallLength()) / getGoalStateMachine().getSeatSeparation());
+                return new MiddleGoalState(getGoalStateMachine(), actualRow);
+            }
+            return new FinalGoalState(getGoalStateMachine());
+        }
+
+        @Override
+        void notifyMove() {
+            final Vector2D position = getGoalStateMachine().getParticle().getPosition();
+            flag = position.getY() < this.getStartingY()
+                    && Math.abs(position.getX()) > getGoalStateMachine().getCentralHallWidth() / 2;
+            super.notifyMove();
         }
 
         /**
@@ -778,6 +830,11 @@ public class Goal {
         private final Vector2D nextPosition;
 
         /**
+         * A flag indicating whether the state machine should go backwards.
+         */
+        private boolean flag;
+
+        /**
          * Constructor.
          *
          * @param goalStateMachine The {@link GoalStateMachine} that owns this state.
@@ -791,10 +848,16 @@ public class Goal {
             final double y = getGoalStateMachine().getFrontHallLength()
                     + (getGoalStateMachine().getTargetRow() + 0.5) * getGoalStateMachine().getSeatSeparation();
             this.nextPosition = new Vector2D(x, y);
+            this.flag = false;
         }
 
         @Override
         /* package */ GoalState nextState() {
+            if (flag) {
+                final Vector2D position = getGoalStateMachine().getParticle().getPosition();
+                final int actualRow = (int) ((position.getX() - getGoalStateMachine().getFrontHallLength()) / getGoalStateMachine().getSeatSeparation());
+                return actualRow - 1 == getGoalStateMachine().getTargetRow() ? new MiddleGoalState(getGoalStateMachine(), actualRow) : new LastMiddleState(getGoalStateMachine());
+            }
             return new ReachedGoalState(this.getGoalStateMachine(), this.nextPosition);
         }
 
@@ -806,6 +869,10 @@ public class Goal {
         @Override
         /* package */ void notifyMove() {
             final Vector2D position = getGoalStateMachine().getParticle().getPosition();
+
+            flag = position.getY() < getGoalStateMachine().getFrontHallLength() + (getGoalStateMachine().getTargetRow()) * getGoalStateMachine().getSeatSeparation()
+                    && Math.abs(position.getX()) > getGoalStateMachine().getCentralHallWidth() / 2;
+
             final double margin = getGoalStateMachine().getMargin();
             // Check whether the particle has reached the seat (with a margin of error)
             if (position.distance(getNextPosition()) < margin) {

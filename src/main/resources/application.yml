@@ -8,9 +8,9 @@ spring:
 custom:
     system:
         airplane:
-            rows: 27
+            rows: 28
             columns: 3
-            central-hall-width: 0.7
+            central-hall-width: 0.85
             front-hall-length: 2
             seat-width: 0.5
             seat-separation: 0.7

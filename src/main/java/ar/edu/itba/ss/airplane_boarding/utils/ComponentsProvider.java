@@ -276,7 +276,7 @@ public class ComponentsProvider {
         // TODO: particles positions should be initialized according to a boarding strategy? or random? on a queue?
         final List<Goal> goals = new LinkedList<>();
         switch (boardingStrategy) {
-            case BACK_TO_FRONT_BY_ROW: {
+            case BACK_TO_FRONT: {
                 for (int row = amountOfSeatRows - 1; row >= 0; row--) {
                     for (int column = amountOfSeatsPerSide - 1; column >= 0; column--) {
                         goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
@@ -285,41 +285,13 @@ public class ComponentsProvider {
                 }
                 break;
             }
-            case FRONT_TO_BACK_BY_ROW: {
-                for (int row = 0; row < amountOfSeatRows; row++) {
-                    for (int column = amountOfSeatsPerSide - 1; column >= 0; column--) {
-                        goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
-                        goals.add(buildGoal(row, column, Goal.AirplaneSide.RIGHT));
-                    }
-                }
-                break;
-            }
-            case OUTSIDE_IN_BY_COLUMN: {
+            case OUTSIDE_IN: {
                 for (int column = amountOfSeatsPerSide - 1; column >= 0; column--) {
                     for (int row = amountOfSeatRows - 1; row >= 0; row--) {
                         goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
                         goals.add(buildGoal(row, column, Goal.AirplaneSide.RIGHT));
                     }
                 }
-                break;
-            }
-            case INSIDE_OUT_BY_COLUMN: {
-                for (int column = 0; column < amountOfSeatsPerSide; column++) {
-                    for (int row = amountOfSeatRows - 1; row >= 0; row--) {
-                        goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
-                        goals.add(buildGoal(row, column, Goal.AirplaneSide.RIGHT));
-                    }
-                }
-                break;
-            }
-            case RANDOM: {
-                for (int column = 0; column < amountOfSeatsPerSide; column++) {
-                    for (int row = 0; row < amountOfSeatRows; row++) {
-                        goals.add(buildGoal(row, column, Goal.AirplaneSide.LEFT));
-                        goals.add(buildGoal(row, column, Goal.AirplaneSide.RIGHT));
-                    }
-                }
-                Collections.shuffle(goals);
                 break;
             }
             default:
@@ -395,10 +367,7 @@ public class ComponentsProvider {
          * @param rawSourceOfValues The raw source of values to be added to the queue.
          */
         private void addToQueue(final List<Integer> rawSourceOfValues) {
-            // Toss a coin to check if the list must be shuffled.
-            if (new Random().nextInt(2) == 0) {
-                Collections.shuffle(rawSourceOfValues);
-            }
+//            shuffle(rawSourceOfValues);
             nextValues.addAll(rawSourceOfValues);
         }
 
@@ -410,6 +379,20 @@ public class ComponentsProvider {
          */
         /* package */ int getNext() {
             return nextValues.remove();
+        }
+
+        /**
+         * Shuffles the list with 35% of swapping probability.
+         *
+         * @param list The list to be shuffled.
+         */
+        static void shuffle(final List<Integer> list) {
+            for (int i = 0; i < list.size(); i++) {
+                // Toss a coin to check if the element must be swapped.
+                if (new Random().nextInt(100) < 35) {
+                    Collections.swap(list, i, new Random().nextInt(list.size()));
+                }
+            }
         }
     }
 }

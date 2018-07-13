@@ -18,12 +18,14 @@ import java.util.stream.Stream;
 @Component
 public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
 
+    private final double MAX_DURATION = 45 * 60;
+
     /**
      * A {@link DoubleSupplier} that supplies random double values between 30d and 45d.
      * Is used to get random values of storing luggage time.
      */
     private final static DoubleSupplier RANDOM_STORING_LUGGAGE_TIME_SUPPLIER =
-            () -> 30d + 15d * new Random().nextDouble();
+            () -> new Random().nextInt(10) < 5 ? 10d + 10d * new Random().nextDouble() : 0d;
 
     // ================================================================================================================
     // fixed Obstacles and particles
@@ -169,7 +171,7 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
      * @return {@code true} if the simulation should stop, or {@code false} otherwise.
      */
     public boolean shouldStop() {
-        return discountTime > 60;
+        return actualTime > MAX_DURATION || discountTime > 60;
     }
 
 
