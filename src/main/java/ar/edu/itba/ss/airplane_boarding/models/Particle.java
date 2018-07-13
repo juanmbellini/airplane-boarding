@@ -90,6 +90,11 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
      */
     private final double maxVelocityModule;
 
+    /**
+     * A number indicating how many calling turns this particle must wait in order to approach the jet bridge.
+     */
+    private int callingTurns;
+
 
     // ================================================================================================================
     // Constructor
@@ -98,21 +103,24 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     /**
      * Constructor.
      *
-     * @param radius            The particle's radius.
-     * @param position          The particle's position (represented as a 2D vector).
-     * @param velocity          The particle's velocity (represented as a 2D vector).
-     * @param goal              The {@link Goal} to which the particle must reach.
-     * @param minRadius         The min. radius this particle can have.
-     * @param maxRadius         The max. radius this particle can have.
-     * @param tao               Mean time a particle needs to get to the minimum radius.
-     * @param beta              Experimental constant that defines the linearity
-     *                          between speed changes and blocks avoidance.
-     * @param maxVelocityModule The max. speed a particle can reach.
+     * @param radius              The particle's radius.
+     * @param position            The particle's position (represented as a 2D vector).
+     * @param velocity            The particle's velocity (represented as a 2D vector).
+     * @param goal                The {@link Goal} to which the particle must reach.
+     * @param minRadius           The min. radius this particle can have.
+     * @param maxRadius           The max. radius this particle can have.
+     * @param tao                 Mean time a particle needs to get to the minimum radius.
+     * @param beta                Experimental constant that defines the linearity
+     *                            between speed changes and blocks avoidance.
+     * @param maxVelocityModule   The max. speed a particle can reach.
+     * @param initialCallingTurns The initial amount
+     *                            of calling turns this particle must wait in order to approach the jet bridge.
      */
     public Particle(final double radius, final Vector2D position, final Vector2D velocity,
                     final Goal goal,
                     final double minRadius, final double maxRadius,
-                    final double tao, final double beta, final double maxVelocityModule) {
+                    final double tao, final double beta, final double maxVelocityModule,
+                    final int initialCallingTurns) {
 
         // First, validate
         validateRadius(radius, minRadius, maxRadius);
@@ -122,6 +130,7 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         validateTao(tao);
         validateBeta(beta);
         validateMaxVelocityModule(maxVelocityModule);
+        validateInitialCallingTurns(initialCallingTurns);
 
         // Then, set
         this.radius = radius;
@@ -135,6 +144,7 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
         this.maxVelocityModule = maxVelocityModule;
 //        this.reachedGoal = false;
         this.canMove = false;
+        this.callingTurns = initialCallingTurns;
         this.goal.initialize(this);
     }
 
@@ -174,6 +184,28 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     }
 
     /**
+     * Indicates that this particle was called to approach the jet bridge.
+     *
+     * @return {@code true} if this particle was called, or {@code false} otherwise.
+     */
+    public boolean itItsTurn() {
+        return callingTurns <= 0;
+    }
+
+    public boolean isInsideTheAirplane() {
+        return this.goal.insideAirplane();
+    }
+
+    /**
+     * Indicates whether this particle has already seated (i.e has reached its final goal).
+     *
+     * @return {@code true} if the particle is already seated, or {@code false} otherwise.
+     */
+    public boolean alreadySeated() {
+        return goal.noMoreTargets();
+    }
+
+    /**
      * Indicates whether this particle has already reached the goal.
      *
      * @return {@code true} if the particle reached the goal, or {@code false} otherwise.
@@ -188,6 +220,12 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     // Update
     // ================================================================================================================
 
+    /**
+     * Decrements the amount of calling turns.
+     */
+    public void updateCall() {
+        this.callingTurns--;
+    }
 
     /**
      * Prepares this particle to be moved.
@@ -347,6 +385,16 @@ public class Particle implements StateHolder<Particle.ParticleState>, Obstacle {
     private static void validateMaxVelocityModule(final double maxVelocityModule) throws IllegalArgumentException {
         Assert.isTrue(maxVelocityModule > 0, "The max. velocity module must be positive.");
         // TODO: more validations?
+    }
+
+    /**
+     * Validates the given {@code initialCallingTurns}.
+     *
+     * @param initialCallingTurns The initial calling turns value to be validated.
+     * @throws IllegalArgumentException In case the given {@code initialCallingTurns} is not valid.
+     */
+    private static void validateInitialCallingTurns(final int initialCallingTurns) throws IllegalArgumentException {
+        Assert.isTrue(initialCallingTurns >= 0, "The initial amount of calling turns must not be negative");
     }
 
 

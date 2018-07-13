@@ -53,6 +53,26 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
      */
     private double actualTime;
 
+    /**
+     * Calls that have been made to passengers.
+     */
+    private int calls;
+
+    /**
+     * A flag indicating that all passengers are already seated.
+     */
+    private boolean areAllSeated;
+
+    /**
+     * The amount of passengers that can enter the airplane at once.
+     */
+    private final int batch;
+
+    /**
+     * Discount time given to finish the simulation when all passengers are seated.
+     */
+    private double discountTime;
+
 
     // ================================================================================================================
     // Others
@@ -100,11 +120,15 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
 
         // Update stuff
         this.actualTime = 0;
+        this.calls = 1;
         this.timeStep = timeStep;
+        this.areAllSeated = false;
+        this.batch = componentsProvider.getBatch();
+        this.discountTime = 0;
 
         // Others
         this.clean = true;
-        storingLuggageTime = new HashMap<>();
+        this.storingLuggageTime = new HashMap<>();
     }
 
     // ================================================================================================================
@@ -145,8 +169,7 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
      * @return {@code true} if the simulation should stop, or {@code false} otherwise.
      */
     public boolean shouldStop() {
-        return actualTime > 180;
-//        return true; // TODO: set a stop condition
+        return discountTime > 60;
     }
 
 
@@ -163,9 +186,14 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
                 .filter(e -> e.getValue() > 0)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
+        // Also get those that are noy yet called
+        final List<Particle> notYetCalled = particles.stream()
+                .filter(p -> !p.itItsTurn())
+                .collect(Collectors.toList());
 
-        // Then filter the particle list to get just the ones that are not packing
+        // Then filter the particle list to get just the ones that are not storing luggage and have been called.
         final List<Particle> particlesThatCanMove = particles.stream()
+                .filter(p -> !notYetCalled.contains(p))
                 .filter(p -> !areStoringLuggage.contains(p))
                 .collect(Collectors.toList());
 
@@ -198,8 +226,27 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
                 .collect(Collectors.toList());
         newStoringLuggage.forEach(p -> storingLuggageTime.put(p, RANDOM_STORING_LUGGAGE_TIME_SUPPLIER.getAsDouble()));
 
+        // Then, check if another call must be done
+        final long seatedPassengers = particles.stream()
+                .filter(Particle::alreadySeated)
+                .count();
+        final int calledPassengers = calls * batch;
+        if (seatedPassengers > calledPassengers - batch / 2) {
+            particles.forEach(Particle::updateCall);
+            calls++;
+        }
+
+        // Check if are all seated
+        if (!areAllSeated) {
+            // Only do this if not modified yet. Once modified, avoid it.
+            this.areAllSeated = particles.stream().allMatch(Particle::alreadySeated);
+        }
+
         // Finally, update the time
         this.actualTime += timeStep;
+        if (areAllSeated) {
+            discountTime += timeStep;
+        }
     }
 
     @Override
@@ -209,6 +256,8 @@ public class BoardingScene implements System<BoardingScene.BoardingSceneState> {
         }
         this.particles.clear();
         this.particles.addAll(componentsProvider.createParticles());
+        this.actualTime = 0;
+        this.storingLuggageTime.clear();
         this.clean = true;
     }
 

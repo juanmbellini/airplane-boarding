@@ -7,9 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -18,13 +16,6 @@ import java.util.stream.IntStream;
  */
 @Component
 public class ComponentsProvider {
-
-    /**
-     * The max. amount of consecutive failed tries of adding a {@link Particle}
-     * into the returned {@link List} of {@link Particle} by {@link #createParticles()} method.
-     */
-    private static final int MAX_AMOUNT_OF_TRIES = 3000;
-
 
     // ================================================================================================================
     // Airplane stuff
@@ -108,6 +99,11 @@ public class ComponentsProvider {
      */
     private final BoardingStrategy boardingStrategy;
 
+    /**
+     * The amount of passengers that can enter the airplane at once.
+     */
+    private final int batch;
+
 
     // ================================================================================================================
     // Particles stuff
@@ -147,6 +143,11 @@ public class ComponentsProvider {
      */
     private final double startingY;
 
+
+    // ================================================================================================================
+    // Constructor
+    // ================================================================================================================
+
     /**
      * Constructor.
      *
@@ -162,6 +163,7 @@ public class ComponentsProvider {
      * @param jetBridgeWidth       The width of the jet bridge.
      * @param boardingStrategy     The {@link BoardingStrategy} to be used
      *                             (used to initialize {@link Particle}s according to it).
+     * @param batch                The amount of passengers that can enter the airplane at once.
      * @param minRadius            The min. radius of the {@link Particle}s to be created
      *                             (which will be the starting radius).
      * @param maxRadius            The max. amount of {@link Particle}s to be created.
@@ -181,6 +183,7 @@ public class ComponentsProvider {
                               @Value("${custom.system.jet-bridge.length}") final double jetBridgeLength,
                               @Value("${custom.system.jet-bridge.width}") final double jetBridgeWidth,
                               @Value("${custom.simulation.boarding-strategy}") final BoardingStrategy boardingStrategy,
+                              @Value("${custom.simulation.entry-batch}") final int batch,
                               @Value("${custom.system.particle.min-radius}") final double minRadius,
                               @Value("${custom.system.particle.max-radius}") final double maxRadius,
                               @Value("${custom.system.particle.tao}") final double tao,
@@ -188,6 +191,10 @@ public class ComponentsProvider {
                               @Value("${custom.system.particle.max-speed}") final double maxVelocityModule) {
         Assert.notNull(boardingStrategy, "The boarding strategy must not be null");
         // Airplane and Particle stuff are validated in their respective creator methods.
+
+        // Boarding stuff
+        this.boardingStrategy = boardingStrategy;
+        this.batch = batch;
 
         // Particle stuff
         this.minRadius = minRadius;
@@ -216,18 +223,12 @@ public class ComponentsProvider {
         this.jetBridgeWidth = jetBridgeWidth;
 
         // Waiting room stuff
-        // TODO: build according the batch
-        final double waitingRoomWidth = 2 * amountOfSeatRows * amountOfSeatsPerSide * 2 * particleSeparation
-                + 10 * particleSeparation;
-        final double waitingRoomLength = startingY + 2 * particleSeparation;
+        final double waitingRoomWidth = (batch + 1) * 2 * particleSeparation;
+        final double waitingRoomLength = startingY
+                + (2 * amountOfSeatRows * amountOfSeatsPerSide * 2 * particleSeparation) / batch;
         this.waitingRoom = WaitingRoom.buildFromSpecifications(waitingRoomWidth, waitingRoomLength,
                 airplaneWidth, jetBridgeWidth, jetBridgeLength);
 
-        // Boarding stuff
-        this.boardingStrategy = boardingStrategy;
-
-
-        ;
     }
 
     /**
@@ -255,6 +256,15 @@ public class ComponentsProvider {
      */
     public WaitingRoom getWaitingRoom() {
         return waitingRoom;
+    }
+
+    /**
+     * Provides the batch value.
+     *
+     * @return The amount of passengers that can enter the airplane at once.
+     */
+    public int getBatch() {
+        return batch;
     }
 
     /**
@@ -318,15 +328,23 @@ public class ComponentsProvider {
 
         final double startingX = 2 * particleSeparation
                 + centralHallWidth / 2 + amountOfSeatsPerSide * seatWidth + maxRadius + jetBridgeLength;
-        return IntStream.range(0, goals.size())
-                .mapToObj(idx -> {
-                    final Goal goal = goals.get(idx);
-                    // Must give a lot of separation in order to avoid congestion
-                    final Vector2D initialPosition = new Vector2D(startingX + 2 * particleSeparation * idx, startingY);
-                    return new Particle(maxRadius, initialPosition, Vector2D.ZERO, goal,
-                            minRadius, maxRadius, tao, beta, maxVelocityModule);
-                })
-                .collect(Collectors.toList());
+
+
+        final Shuffler shuffler = new Shuffler(goals.size(), batch);
+        final List<Particle> particles = new LinkedList<>();
+        for (int idx = 0; idx < goals.size(); idx++) {
+            final Goal goal = goals.get(idx);
+            final int initialCallingNumber = idx / batch;
+            // Must give a lot of separation in order to avoid congestion
+            final Vector2D initialPosition = new Vector2D(
+                    startingX + 2 * particleSeparation * shuffler.getNext(),
+                    startingY + initialCallingNumber * 2 * particleSeparation
+            );
+            final Particle particle = new Particle(maxRadius, initialPosition, Vector2D.ZERO, goal,
+                    minRadius, maxRadius, tao, beta, maxVelocityModule, initialCallingNumber);
+            particles.add(particle);
+        }
+        return particles;
     }
 
     /**
@@ -340,5 +358,58 @@ public class ComponentsProvider {
     private Goal buildGoal(final int targetRow, final int targetColumn, final Goal.AirplaneSide targetSide) {
         return new Goal(frontHallLength, centralHallWidth, doorLength, seatWidth, seatSeparation,
                 targetRow, targetColumn, targetSide, jetBridgeWidth, particleSeparation, minRadius);
+    }
+
+    /**
+     * A class that wraps the logic to shuffle values repeated in a batch.
+     */
+    private static final class Shuffler {
+        /**
+         * A {@link Queue} holding the elements in the shuffler.
+         */
+        private final Queue<Integer> nextValues;
+
+        /**
+         * Constructor.
+         *
+         * @param amountOfElements The overall amount of elements that the shuffler must contain.
+         * @param batch            The batch value.
+         */
+        /* package */ Shuffler(final int amountOfElements, final int batch) {
+            final int parts = amountOfElements / batch;
+            final int reminder = amountOfElements % batch;
+
+            this.nextValues = new LinkedList<>();
+            for (int i = 0; i < parts; i++) {
+                addToQueue(IntStream.range(0, batch).boxed().collect(Collectors.toList()));
+            }
+            if (reminder != 0) {
+                addToQueue(IntStream.range(0, reminder).boxed().collect(Collectors.toList()));
+            }
+
+        }
+
+        /**
+         * Adds elements to the queue, performing a shuffling with a given randomness.
+         *
+         * @param rawSourceOfValues The raw source of values to be added to the queue.
+         */
+        private void addToQueue(final List<Integer> rawSourceOfValues) {
+            // Toss a coin to check if the list must be shuffled.
+            if (new Random().nextInt(2) == 0) {
+                Collections.shuffle(rawSourceOfValues);
+            }
+            nextValues.addAll(rawSourceOfValues);
+        }
+
+        /**
+         * Returns the next element in the shuffler.
+         *
+         * @return The next element in the shuffler.
+         * @throws NoSuchElementException if there are no more elements in the shuffler.
+         */
+        /* package */ int getNext() {
+            return nextValues.remove();
+        }
     }
 }

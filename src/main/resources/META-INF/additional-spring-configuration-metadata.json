@@ -81,6 +81,11 @@
       "description": "The strategy used to board the passengers."
     },
     {
+      "name": "custom.simulation.entry-batch",
+      "type": "java.lang.Integer",
+      "description": "The amount of passengers that can enter the airplane at once."
+    },
+    {
       "name": "custom.output.ovito",
       "type": "java.lang.String",
       "description": "The path for the Ovito file."

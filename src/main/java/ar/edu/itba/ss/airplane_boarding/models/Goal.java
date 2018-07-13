@@ -87,6 +87,19 @@ public class Goal {
         return this.stateMachine.isLastMovingTarget();
     }
 
+    public boolean insideAirplane() {
+        return this.stateMachine.isInsideAirplane();
+    }
+
+    /**
+     * Indicates that there are no more targets.
+     *
+     * @return {@code true} if there are no more targets, or {@code false} otherwise.
+     */
+    public boolean noMoreTargets() {
+        return this.stateMachine.noMoreTargets();
+    }
+
 
     /**
      * An enum to indicate whether the final goal is in the left or right side of the airplane.
@@ -356,6 +369,26 @@ public class Goal {
             Assert.state(actualState != null && particle != null, "The state machine must be initialized first");
             return this.actualState.getClass() == FinalGoalState.class;
         }
+
+        /**
+         * Indicates that the state machine is in the last moving state (i.e has the {@link FinalGoalState} state).
+         *
+         * @return {@code true} if the state machine's state is the {@link FinalGoalState}, or {@code false} otherwise.
+         */
+        /* package */ boolean isInsideAirplane() {
+            Assert.state(actualState != null && particle != null, "The state machine must be initialized first");
+            return this.actualState.isInside();
+        }
+
+        /**
+         * Indicates that the state machine is in the last state (i.e has the {@link ReachedGoalState} state).
+         *
+         * @return {@code true} if the state machine's state is the {@link ReachedGoalState}, or {@code false} otherwise.
+         */
+        /* package */ boolean noMoreTargets() {
+            Assert.state(actualState != null && particle != null, "The state machine must be initialized first");
+            return this.actualState.getClass() == ReachedGoalState.class;
+        }
     }
 
     /**
@@ -407,6 +440,13 @@ public class Goal {
          */
         /* package */
         abstract void notifyMove();
+
+        /**
+         * Indicates that this state returns a goal inside the airplane.
+         *
+         * @return {@code true} if the target is inside the airplane, or {@code false} otherwise.
+         */
+        abstract boolean isInside();
     }
 
     /**
@@ -442,6 +482,11 @@ public class Goal {
          */
         private final Supplier<GoalState> nextStateSupplier;
 
+        /**
+         * Indicates whether the goal is inside the airplane.
+         */
+        private final boolean isInside;
+
 
         /**
          * Constructor.
@@ -456,7 +501,8 @@ public class Goal {
         private ReachARectangularRegionState(final GoalStateMachine goalStateMachine,
                                              final double startingX, final double finishingX,
                                              final double startingY, final double finishingY,
-                                             final Supplier<GoalState> nextStateSupplier) {
+                                             final Supplier<GoalState> nextStateSupplier,
+                                             final boolean isInside) {
             super(goalStateMachine);
             this.startingX = startingX;
             this.finishingX = finishingX;
@@ -466,6 +512,7 @@ public class Goal {
             final double x = this.startingX + (this.finishingX - this.startingX) / 2;
             final double y = this.startingY + (this.finishingY - this.startingY) / 2;
             this.nextPosition = new Vector2D(x, y);
+            this.isInside = isInside;
         }
 
         @Override
@@ -491,6 +538,11 @@ public class Goal {
                 getGoalStateMachine().nextState();
             }
         }
+
+        @Override
+        /* package */ boolean isInside() {
+            return isInside;
+        }
     }
 
     /**
@@ -510,7 +562,8 @@ public class Goal {
                     startingX + goalStateMachine.getParticleXSeparation(),
                     0,
                     goalStateMachine.getJetBridgeWidth() - goalStateMachine.getMargin() / 2,
-                    () -> new ReachDoorState(goalStateMachine));
+                    () -> new ReachDoorState(goalStateMachine),
+                    false);
         }
     }
 
@@ -531,7 +584,8 @@ public class Goal {
                     goalStateMachine.getCentralHallWidth() / 2 + 4 * goalStateMachine.getMargin(),
                     0,
                     goalStateMachine.getDoorLength(),
-                    () -> new FrontHallState(goalStateMachine));
+                    () -> new FrontHallState(goalStateMachine),
+                    false);
         }
     }
 
@@ -582,6 +636,11 @@ public class Goal {
                 // In this case we assume that the goal was reached, so we move forward the state machine
                 getGoalStateMachine().nextState();
             }
+        }
+
+        @Override
+        /* package */ boolean isInside() {
+            return true;
         }
     }
 
@@ -642,6 +701,11 @@ public class Goal {
                 getGoalStateMachine().nextState();
             }
         }
+
+        @Override
+        /* package */ boolean isInside() {
+            return true;
+        }
     }
 
     /**
@@ -662,7 +726,8 @@ public class Goal {
                             + goalStateMachine.getTargetRow() * goalStateMachine.getSeatSeparation(),
                     goalStateMachine.getFrontHallLength()
                             + (goalStateMachine.getTargetRow() + 1) * goalStateMachine.getSeatSeparation(),
-                    () -> new FinalGoalState(goalStateMachine));
+                    () -> new FinalGoalState(goalStateMachine),
+                    true);
         }
 
         /**
@@ -748,6 +813,11 @@ public class Goal {
                 getGoalStateMachine().nextState();
             }
         }
+
+        @Override
+        /* package */ boolean isInside() {
+            return true;
+        }
     }
 
     /**
@@ -785,6 +855,11 @@ public class Goal {
         @Override
         /* package */ void notifyMove() {
             // In this case we don't do anything
+        }
+
+        @Override
+        /* package */ boolean isInside() {
+            return false;
         }
     }
 }
